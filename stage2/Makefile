@@ -4,11 +4,12 @@
 # Parameters {{{
 
 ifdef VERBOSE
-	Q :=
-	E := @true 
+Q :=
+E := @true 
 else
-	Q := @
-	E := @echo 
+Q := @
+E := @echo 
+MAKEFLAGS += --no-print-directory
 endif
 
 # }}}
@@ -18,7 +19,7 @@ PACKAGE_NAME    := stage2
 PACKAGE_VERSION := $(shell git describe --always --dirty)
 
 ifndef PACKAGE_VERSION
-	PACKAGE_VERSION := 9999
+PACKAGE_VERSION := 9999
 endif
 
 # }}}
@@ -37,9 +38,10 @@ OUTFILES := $(BINFILE)
 # }}}
 # Source and intermediate files {{{
 
-STAGE2 := $(SRCDIR)/stage2.asm
+STAGE2   := $(SRCDIR)/stage2.asm
+ASMFILES := $(shell find -L src -iname '*.asm')
 
-INFILES := $(STAGE2)
+INFILES := $(ASMFILES)
 
 # }}}
 # Toolkit {{{
@@ -63,10 +65,10 @@ all: bin
 
 bin: $(BINFILE)
 
-$(BINFILE): $(STAGE2)
+$(BINFILE): $(ASMFILES)
 	$(Q)mkdir -p $(@D)
-	$(E) "  AS       $<"
-	$(Q)$(AS) $(ASFLAGS) -o $@ $<
+	$(E) "  AS       $(STAGE2)"
+	$(Q)$(AS) $(ASFLAGS) -o $@ $(STAGE2)
 
 clean:
 	$(E) "  CLEAN    $(OUTFILES)"

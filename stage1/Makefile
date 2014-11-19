@@ -4,11 +4,12 @@
 # Parameters {{{
 
 ifdef VERBOSE
-	Q :=
-	E := @true 
+Q :=
+E := @true 
 else
-	Q := @
-	E := @echo 
+Q := @
+E := @echo 
+MAKEFLAGS += --no-print-directory
 endif
 
 # }}}
@@ -18,7 +19,7 @@ PACKAGE_NAME    := stage1
 PACKAGE_VERSION := $(shell git describe --always --dirty)
 
 ifndef PACKAGE_VERSION
-	PACKAGE_VERSION := 9999
+PACKAGE_VERSION := 9999
 endif
 
 # }}}

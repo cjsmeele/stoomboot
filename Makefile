@@ -4,11 +4,12 @@
 # Parameters {{{
 
 ifdef VERBOSE
-	Q :=
-	E := @true 
+Q :=
+E := @true 
 else
-	Q := @
-	E := @echo 
+Q := @
+E := @echo 
+MAKEFLAGS += --no-print-directory
 endif
 
 DISKSIZE_M   ?= 128
@@ -22,7 +23,7 @@ PACKAGE_NAME    := takos
 PACKAGE_VERSION := $(shell git describe --always --dirty)
 
 ifndef PACKAGE_VERSION
-	PACKAGE_VERSION := 9999
+PACKAGE_VERSION := 9999
 endif
 
 # }}}
@@ -71,7 +72,7 @@ SFDISKFLAGS := -H 64 -S 32
 
 # Make targets {{{
 
-.PHONY: all clean run
+.PHONY: all clean run stage1-mbr-bin stage1-fat32-bin stage2-bin kernel-bin
 
 all: $(DISKFILE)
 
@@ -91,9 +92,12 @@ clean-all: clean
 # TODO: Install stage1 in FAT32 bootsector.
 
 $(DISKFILE): $(STAGE1_MBR_BIN) $(STAGE2_BIN) $(KERNEL_BIN)
+	$(E) ""
+	$(E) "Disk Image"
+	$(E) "=========="
 	$(Q)mkdir -p $(@D)
 	$(E) "  DD       $@"
-	$(Q)$(DD) $(DDFLAGS) if=/dev/zero of=$@ bs=1M count=$(DISKSIZE_M)
+	$(Q)$(DD) $(DDFLAGS) if=/dev/zero of=$@ bs=1M count=$(DISKSIZE_M) 2>/dev/null
 	$(E) "  SFDISK   $@"
 	$(Q)echo -e \
 	"unit: sectors\n"\
@@ -102,7 +106,7 @@ $(DISKFILE): $(STAGE1_MBR_BIN) $(STAGE2_BIN) $(KERNEL_BIN)
 	"boot.img2 : start =    0, size= 0, Id= 0\n"\
 	"boot.img3 : start =    0, size= 0, Id= 0\n"\
 	"boot.img4 : start =    0, size= 0, Id= 0"\
-	| $(SFDISK) $(SFDISKFLAGS) $@
+	| $(SFDISK) $(SFDISKFLAGS) $@ >/dev/null
 	$(E) "  INSTALL  $@"
 	$(Q)perl tools/loader-install.pl \
 		--mbr \
@@ -111,16 +115,36 @@ $(DISKFILE): $(STAGE1_MBR_BIN) $(STAGE2_BIN) $(KERNEL_BIN)
 		--stage2-lba 1 \
 		--img $@
 
-$(STAGE1_MBR_BIN):
+$(STAGE1_MBR_BIN): stage1-mbr-bin ;
+
+stage1-mbr-bin:
+	$(E) ""
+	$(E) "Stage 1 (MBR)"
+	$(E) "============="
 	$(Q)$(MAKE) -C $(STAGE1DIR) bin-mbr
 
-$(STAGE1_FAT32_BIN):
+$(STAGE1_FAT32_BIN): stage1-fat32-bin ;
+
+stage1-fat32-bin:
+	$(E) ""
+	$(E) "Stage 1 (FAT32)"
+	$(E) "==============="
 	$(Q)$(MAKE) -C $(STAGE1DIR) bin-fat32
 
-$(STAGE2_BIN):
+$(STAGE2_BIN): stage2-bin ;
+
+stage2-bin:
+	$(E) ""
+	$(E) "Stage 2"
+	$(E) "======="
 	$(Q)$(MAKE) -C $(STAGE2DIR) bin
 
-$(KERNEL_BIN):
+$(KERNEL_BIN): kernel-bin ;
+
+kernel-bin:
+	$(E) ""
+	$(E) "Kernel"
+	$(E) "======"
 	$(Q)$(MAKE) -C $(KERNELDIR) bin
 
 # }}}
