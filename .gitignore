@@ -1,0 +1,15 @@
+# Output directories
+*/obj/*
+*/bin/*
+/kernel/dep/*
+/img/*
+
+# Local makefile settings
+Makefile.local
+
+# Local backup and swap files
+*~*
+*.swp
+
+# Vim ctags
+/tags
