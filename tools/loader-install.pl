@@ -69,8 +69,8 @@ binmode $img;
 my @stage2;
 if(defined $o_stage2){
 	my $stage2 = slurp $o_stage2;
-	@stage2 = unpack 'C*', $stage2;
-	$o_stage2_blocks = @stage2 / 512 + (@stage2 % 512 ? 1 : 0);
+	   @stage2 = unpack 'C*', $stage2;
+	$o_stage2_blocks = int (@stage2 / 512 + (@stage2 % 512 ? 1 : 0));
 }
 
 die "$0: stage2 too large (max 64K)\n" if length($o_stage2_blocks) > 64*1024;
@@ -100,7 +100,7 @@ if($o_mbr){
 	print $img pack 'Q', $o_stage2_offset;
 
 	# Write stage2 block count into the DAP.
-	seek $img, 0x09, 0;
+	seek $img, 0x08, 0;
 	print $img pack 'C', $o_stage2_blocks;
 
 	# Write bootsector magic.
