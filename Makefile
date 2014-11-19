@@ -107,6 +107,7 @@ $(DISKFILE): $(STAGE1_MBR_BIN) $(STAGE2_BIN) $(KERNEL_BIN)
 	$(Q)perl tools/loader-install.pl \
 		--mbr \
 		--stage1-mbr $(STAGE1_MBR_BIN) \
+		--stage2 $(STAGE2_BIN) \
 		--stage2-lba 1 \
 		--img $@
 

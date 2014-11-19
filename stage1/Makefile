@@ -46,7 +46,7 @@ INFILES := $(STAGE1_MBR) $(STAGE1_FAT32)
 # }}}
 # Toolkit {{{
 
-AS := nasm
+AS := yasm
 
 # }}}
 # Toolkit flags {{{

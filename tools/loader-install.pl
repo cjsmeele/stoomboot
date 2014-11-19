@@ -35,19 +35,22 @@ my $o_stage1_mbr;
 my $o_stage1_fat;
 my $o_stage2;
 my $o_stage2_offset;
+my $o_stage2_blocks;
 
 GetOptions(
-	"mbr!"           => \$o_mbr,
-	"fat32=i"        => \$o_fat,
-	"img=s"          => \$o_img,
-	"stage1-mbr=s"   => \$o_stage1_mbr,
-	"stage1-fat32=i" => \$o_stage1_fat,
-	"stage2=s"       => \$o_stage2,
-	"stage2-lba=i"   => \$o_stage2_offset,
+	"mbr!"            => \$o_mbr,
+	"fat32=i"         => \$o_fat,
+	"img=s"           => \$o_img,
+	"stage1-mbr=s"    => \$o_stage1_mbr,
+	"stage1-fat32=i"  => \$o_stage1_fat,
+	"stage2=s"        => \$o_stage2,
+	"stage2-lba=i"    => \$o_stage2_offset,
+	"stage2-blocks=i" => \$o_stage2_blocks,
 );
 
 die "$0: no disk image specified\n"    if not defined $o_img;
 die "$0: no stage2 offset specified\n" if not defined $o_stage2_offset;
+die "$0: must specify either stage2 or stage2-blocks\n" unless defined $o_stage2 xor defined $o_stage2_blocks;
 die "$0: writing bootsectors to FAT32 partitions is not yet supported\n" if defined $o_fat;
 
 sub slurp {
@@ -60,10 +63,17 @@ sub slurp {
 	return $content;
 }
 
-my $stage2 = defined $o_stage2 && slurp $o_stage2;
-
 open my $img, '+<', $o_img or die "$0: could not open image file: $!\n";
 binmode $img;
+
+my @stage2;
+if(defined $o_stage2){
+	my $stage2 = slurp $o_stage2;
+	@stage2 = unpack 'C*', $stage2;
+	$o_stage2_blocks = @stage2 / 512 + (@stage2 % 512 ? 1 : 0);
+}
+
+die "$0: stage2 too large (max 64K)\n" if length($o_stage2_blocks) > 64*1024;
 
 if($o_mbr){
 	die "$0: no mbr stage1 image specified\n" if not defined $o_stage1_mbr;
@@ -85,18 +95,22 @@ if($o_mbr){
 	# Write bootsector.
 	print $img pack 'C*', @stage1[0..435];
 
-	# Write stage2 address. Offset is 0x05 (after a far JMP).
-	seek $img, 5, 0;
+	# Write stage2 address. Offset is 14 (inside an int 13h DAP).
+	seek $img, 0x0e, 0;
 	print $img pack 'Q', $o_stage2_offset;
+
+	# Write stage2 block count into the DAP.
+	seek $img, 0x09, 0;
+	print $img pack 'C', $o_stage2_blocks;
 
 	# Write bootsector magic.
 	seek $img, 510, 0;
 	print $img pack 'C*', 0x55, 0xaa;
 }
 
-#if(defined $o_stage2){
-#	seek $img, $o_stage2_offset*512, 0;
-#	print $img $stage2;
-#}
+if(defined $o_stage2){
+	seek $img, $o_stage2_offset*512, 0;
+	print $img pack 'C*', @stage2;
+}
 
 close $img;

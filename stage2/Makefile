@@ -37,7 +37,6 @@ OUTFILES := $(BINFILE)
 # }}}
 # Source and intermediate files {{{
 
-# TODO
 STAGE2 := $(SRCDIR)/stage2.asm
 
 INFILES := $(STAGE2)
@@ -45,7 +44,7 @@ INFILES := $(STAGE2)
 # }}}
 # Toolkit {{{
 
-AS := nasm
+AS := yasm
 
 # }}}
 # Toolkit flags {{{
