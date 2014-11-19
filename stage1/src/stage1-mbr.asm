@@ -19,8 +19,17 @@ struct_dap:
 	dq 0 ; The stage2 LBA, to be filled in by the installer.
 
 
-s_loading:    db 0x0a, 0x0d, "Loading... stage1 ", 0
-s_disk_error: db 0x0a, 0x0d, "Error: Could not read boot disk for stage2! :(", 0
+s_loading:                  db "Loading... stage1 ", 0
+s_err_no_int13h_extensions: db "Error: No int13h extensions present for LBA disk access. :(", 0
+s_err_disk:                 db "Error: Could not read stage2 from boot disk 0x", 0
+s_err_disk_2:               db ", AH=0x", 0
+
+putbr:
+	mov ax, 0x0e0a
+	int 0x10
+	mov ax, 0x0e0d
+	int 0x10
+	ret
 
 ;; Prints si.
 puts:
@@ -34,6 +43,52 @@ puts:
 	.done:
 		ret
 
+;; Prints a byte in dl in hexadecimal.
+putbyte:
+	mov dh, 1 ; Higher nibble.
+	call .putnibble
+	mov dh, 0 ; Lower nibble.
+	call .putnibble
+	ret
+
+	.putnibble:
+		mov ah, 0x0e
+		mov al, dl
+
+		or dh, dh
+		jz .lower
+		.higher:
+			and al, 0xf0
+			shr al, 4
+			jmp .put
+		.lower:
+			and al, 0x0f
+
+		.put:
+			cmp al, 0x0a
+			jb .decimal
+			.hex:
+				add al, 'a' - 10
+				int 0x10
+				ret
+			.decimal:
+				add al, '0'
+				int 0x10
+				ret
+
+has_int13h_extensions:
+	mov ah, 0x41
+	mov bx, 0x55aa
+	mov dl, [u8_boot_device]
+	int 0x13
+	jc .error
+	mov ax, 1
+	ret
+
+	.error:
+		xor ax, ax
+		ret
+
 ;; Entrypoint.
 start:
 	; Set up the stack.
@@ -45,8 +100,13 @@ start:
 
 	mov [u8_boot_device], dl
 
+	call putbr
 	mov si, s_loading
 	call puts
+
+	call has_int13h_extensions
+	or ax, ax
+	jz .int13h_error
 
 	.load_stage2:
 		mov si, struct_dap
@@ -54,11 +114,32 @@ start:
 		mov dl, [u8_boot_device]
 		int 0x13
 		jc .error
-		jmp 0x0000:0x7e00
-		.error:
-			mov si, s_disk_error
-			call puts
 
+		; Jump to stage2.
+		jmp 0x0000:0x7e00
+
+		.error:
+			push ax
+			call putbr
+			mov si, s_err_disk
+			call puts
+			mov dl, [u8_boot_device]
+			call putbyte
+
+			mov si, s_err_disk_2
+			call puts
+			pop dx
+			call putbyte
+
+			jmp halt
+
+	.int13h_error
+		call putbr
+		mov si, s_err_no_int13h_extensions
+		call puts
+		jmp halt
+
+halt:
 	cli
 	hlt
 
