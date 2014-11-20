@@ -63,7 +63,9 @@ DD     ?= dd
 # }}}
 # Toolkit flags {{{
 
-QEMUFLAGS   := -m 64M -name "osdev" -net none -serial stdio -vga std
+QEMUFLAGS   := -m 64M -name "osdev" -net none -serial stdio -vga std \
+	-drive file=$(DISKFILE),if=scsi,media=disk,format=raw
+
 SFDISKFLAGS := -H 64 -S 32
 
 # }}}
@@ -72,13 +74,13 @@ SFDISKFLAGS := -H 64 -S 32
 
 # Make targets {{{
 
-.PHONY: all clean run stage1-mbr-bin stage1-fat32-bin stage2-bin kernel-bin
+.PHONY: all clean clean-all run disk stage1-mbr-bin stage1-fat32-bin stage2-bin kernel-bin
 
 all: $(DISKFILE)
 
 run: $(DISKFILE)
 	$(E) "  QEMU     $<"
-	$(Q)$(QEMU) $(QEMUFLAGS) -drive file=$<,if=scsi,media=disk,format=raw
+	$(Q)$(QEMU) $(QEMUFLAGS)
 
 clean:
 	$(E) "  CLEAN    $(OUTFILES)"
@@ -88,6 +90,8 @@ clean-all: clean
 	$(Q)$(MAKE) -C $(STAGE1DIR) clean
 	$(Q)$(MAKE) -C $(STAGE2DIR) clean
 	$(Q)$(MAKE) -C $(KERNELDIR) clean
+
+disk: $(DISKFILE)
 
 # TODO: Install stage1 in FAT32 bootsector.
 
@@ -99,7 +103,7 @@ $(DISKFILE): $(STAGE1_MBR_BIN) $(STAGE2_BIN) $(KERNEL_BIN)
 	$(E) "  DD       $@"
 	$(Q)$(DD) $(DDFLAGS) if=/dev/zero of=$@ bs=1M count=$(DISKSIZE_M) 2>/dev/null
 	$(E) "  SFDISK   $@"
-	$(Q)echo -e \
+	$(Q)/bin/echo -e \
 	"unit: sectors\n"\
 	"\n"\
 	"boot.img1 : start = 2048, size= "$(PART_SECTORS)", Id= c, bootable\n"\
