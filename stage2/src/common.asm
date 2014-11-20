@@ -1,5 +1,5 @@
-%ifndef _CONSOLE_ASM
-%define _CONSOLE_ASM
+%ifndef _COMMON_ASM
+%define _COMMON_ASM
 
 ; Copyright (c) 2014 Chris Smeele
 ;
@@ -21,89 +21,68 @@
 ; OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 ; THE SOFTWARE.
 
-%include "common.asm"
+; Calling conventions {{{
 
-putbr:
-	mov ax, 0x0e0a
-	int 0x10
-	mov ax, 0x0e0d
-	int 0x10
+%define ARG(i) [bp + (i+1)*2]
+
+;; Enter a subroutine. Push register arguments on the stack.
+%macro FUNCTION 0-*
+	push bp
+	mov bp, sp
+
+	%rep %0
+		push %1
+		%rotate 1
+	%endrep
+%endmacro
+
+;; Return from a subroutine. Pop register arguments from the stack.
+%macro RETURN_VOID 0-*
+	%rep %0
+		pop %1
+		%rotate 1
+	%endrep
+
+	mov sp, bp
+	pop bp
 	ret
+%endmacro
 
-;; Prints its argument as a string.
-puts: FUNCTION si, bx
+;; Return from a subroutine with a value. Pop register arguments from the stack.
+%macro RETURN 1-*
+	mov ax, %1
 
-	mov si, ARG(1)
+	%rotate -1
 
-	.loop:
-		lodsb
-		or al, al
-		jz .done
+	%rep %0-1
+		%ifidni %1, ax
+			%error Restoring ax before ret overwrites your return value
+		%endif
 
-		mov ah, 0x0e
-		mov bx, 0x0007
-		int 0x10
-		jmp .loop
+		pop %1
+		%rotate -1
+	%endrep
 
-	.done:
-		RETURN_VOID si, bx
+	mov sp, bp
+	pop bp
 
+	ret
+%endmacro
 
-set_cursor_shape: FUNCTION cx
+;; Invoke a subroutine with zero or more arguments.
+%macro INVOKE 1-*
+	%xdefine _SUB_NAME %1
 
-	mov ah, 0x01
-	mov ch, ARG(1)
-	mov cl, ARG(2)
-	int 0x10
+	%rotate -1
+	%rep %0-1
+		push %1
+		%rotate -1
+	%endrep
 
-	RETURN_VOID cx
+	call _SUB_NAME
+	add sp, (%0-1) * 2
+%endmacro
 
+; }}}
 
-putbyte: FUNCTION dx
-
-	mov dx, ARG(1)
-	mov dh, 1 ; Higher nibble.
-	call .putnibble
-	mov dh, 0 ; Lower nibble.
-	call .putnibble
-
-	RETURN_VOID dx
-
-	.putnibble:
-		mov ah, 0x0e
-		mov al, dl
-
-		or dh, dh
-		jz .lower
-		.higher:
-			and al, 0xf0
-			shr al, 4
-			jmp .put
-		.lower:
-			and al, 0x0f
-
-		.put:
-			cmp al, 0x0a
-			jb .decimal
-			.hex:
-				add al, 'a' - 10
-				int 0x10
-				ret
-			.decimal:
-				add al, '0'
-				int 0x10
-				ret
-
-putword: FUNCTION dx
-
-	mov dx, ARG(1)
-	shr dx, 8
-	INVOKE putbyte, dx
-
-	mov dx, ARG(1)
-	INVOKE putbyte, dx
-
-	RETURN_VOID dx
-
-
-%endif ; _CONSOLE_ASM
+%endif ; _COMMON_ASM
