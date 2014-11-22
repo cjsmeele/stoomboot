@@ -24,24 +24,21 @@
 jmp start
 
 %include "common.asm"
-%include "console.asm"
+%include "io/console.asm"
 
-s_loading: db "stage2 ", 0
-s_done:    db "done!", 0
-
-s_foo:     db "foo", 0
-
-
-;; Returns 42 in AX.
-return_42: FUNCTION bx, dx
-
-	mov bx, 0x5555
-	mov dx, 0xaaaa
-	xor dx, bx
-
-	RETURN 42, bx, dx
 
 start:
+	INVOKE main
+	INVOKE halt
+	NORETURN
+
+FUNCTION main
+	VARS
+		.s_loading: db "stage2", 0
+	ENDVARS
+
+	INVOKE putln, .s_loading
+
 	; TODO:
 	;       1.  Scan partition table
 	;       2.  Find FAT32 boot partition
@@ -57,31 +54,15 @@ start:
 	;       12. Switch to protected mode
 	;       13. Jump to the kernel
 
-	; These registers should be preserved through INVOKEs.
-	mov cx, 57005
-	mov dx, 48879
+	RETURN_VOID
 
-	INVOKE puts, s_loading
+FUNCTION halt
+	VARS
+		.s_halt: db CRLF, "stage2: The system has been halted.", 0
+	ENDVARS
 
-	call putbr
-	call putbr
-
-	INVOKE puts, s_done
-	call putbr
-
-	INVOKE puts, s_foo
-	call putbr
-
-	INVOKE set_cursor_shape, 6, 7
-
-	INVOKE return_42
-	INVOKE putword, ax
-	call putbr
-
-	; Check whether CX and DX were preserved.
-	INVOKE putword, cx
-	INVOKE putword, dx
-	call putbr
-
+	INVOKE putln, .s_halt
+hang:
 	cli
 	hlt
+	NORETURN

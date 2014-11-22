@@ -1,5 +1,5 @@
-%ifndef _CONSOLE_ASM
-%define _CONSOLE_ASM
+%ifndef _IO_CONSOLE_ASM
+%define _IO_CONSOLE_ASM
 
 ; Copyright (c) 2014 Chris Smeele
 ;
@@ -21,8 +21,7 @@
 ; OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 ; THE SOFTWARE.
 
-%include "common.asm"
-
+;; Print a newline.
 putbr:
 	mov ax, 0x0e0a
 	int 0x10
@@ -31,25 +30,33 @@ putbr:
 	ret
 
 ;; Prints its argument as a string.
-puts: FUNCTION si, bx
+FUNCTION puts, si, bx
 
 	mov si, ARG(1)
 
-	.loop:
-		lodsb
-		or al, al
-		jz .done
+.loop:
+	lodsb
+	or al, al
+	jz .done
 
-		mov ah, 0x0e
-		mov bx, 0x0007
-		int 0x10
-		jmp .loop
+	mov ah, 0x0e
+	mov bx, 0x0007
+	int 0x10
+	jmp .loop
 
-	.done:
-		RETURN_VOID si, bx
+.done:
+	RETURN_VOID si, bx
 
+;; Prints its argument and a newline.
+FUNCTION putln
 
-set_cursor_shape: FUNCTION cx
+	mov ax, ARG(1)
+	INVOKE puts, ax
+	call   putbr
+
+	RETURN_VOID
+
+FUNCTION set_cursor_shape, cx
 
 	mov ah, 0x01
 	mov ch, ARG(1)
@@ -59,7 +66,7 @@ set_cursor_shape: FUNCTION cx
 	RETURN_VOID cx
 
 
-putbyte: FUNCTION dx
+FUNCTION putbyte, dx
 
 	mov dx, ARG(1)
 	mov dh, 1 ; Higher nibble.
@@ -94,7 +101,7 @@ putbyte: FUNCTION dx
 				int 0x10
 				ret
 
-putword: FUNCTION dx
+FUNCTION putword, dx
 
 	mov dx, ARG(1)
 	shr dx, 8
@@ -105,5 +112,4 @@ putword: FUNCTION dx
 
 	RETURN_VOID dx
 
-
-%endif ; _CONSOLE_ASM
+%endif ; _IO_CONSOLE_ASM
