@@ -21,35 +21,9 @@
 ; OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 ; THE SOFTWARE.
 
-;; Disk information list header.
-struc t_disks_info
-	.disk_count: resb 1
-	.disks:
-endstruc
-
-;; Disk information.
-struc t_disk_info
-	.disk_id:         resb 1 ; BIOS disk number (80h, 81h, ... for harddisks).
-	.sector_size:     resw 1
-	.sector_count:    resd 1
-	.bus_type:        resb 4
-	.interface:       resb 8
-	.partition_count: resb 1
-	.partitions:
-endstruc
-
-;; Partition information.
-struc t_part_info
-	; TODO
-endstruc
-
 absolute 0x500
-	buf_disk_io:       resb 0x1000 ; 4K for large sectors.
-	struct_disks_info: resb 0x66ff ; Reserve memory all the way up to 0x7c00, our bootsector.
+	buf_disk_io: resb MEM_DISK_IO_BUFFER_SIZE
 section .text
-
-%define DISKINFO(s) struct_disks_info + t_disks_info. %+ s
-
 
 ;; Disk Address Packet structure.
 struct_dap:
@@ -64,18 +38,17 @@ struct_dap:
 	.lba:       dq 0
 	.dest_flat: dq 0 ; Optional.
 
-
-;; Reads a disk sector. (UNTESTED)
-;; (disk_i, lba_ptr, blocks, [dest_flat_ptr | 0, dest_segment, dest_offset])
-FUNCTION disk_read_sector, dx, si, di
-	mov si, ARG(2) ; Address where LBA is stored.
+;; Reads one or more disk sectors.
+;; (disk_id, lba_ptr, blocks, [dest_flat_ptr | 0, dest_segment, dest_offset])
+FUNCTION disk_read_sectors, dx, si, di
+	mov si, ARG(2) ; Pointer to LBA.
 	mov di, struct_dap.lba
 	times 4 movsw ; Copy it over.
 
 	mov ax, ARG(3)
 	mov [struct_dap.blocks], ax
 
-	mov si, ARG(4) ; Address where a linear destination address is stored.
+	mov si, ARG(4) ; Pointer to linear destination address.
 	or si, si
 	jz .no_flat
 	.has_flat:
@@ -104,88 +77,6 @@ FUNCTION disk_read_sector, dx, si, di
 	RETURN 0, dx, si, di
 	.error:
 		RETURN 1, dx, si, di
-
-;; Returns a pointer to the disk_info structure for the given disk number.
-;; (disk_number)
-FUNCTION get_diskinfo_struct, dx, di
-	mov ax, t_disk_info_size
-	mov dx, ARG(1)
-	mul dx
-	lea di, [DISKINFO(disks)]
-	add di, ax
-
-	RETURN di, dx, di
-
-;; Returns a pointer to the part_info structure for the given disk number and partition.
-;; (disk_number, partition_number)
-FUNCTION get_partinfo_struct
-	; TODO
-	RETURN 0
-
-;; Fill a disk_info structure by parsing a disk's partition table.
-;; (disk_id)
-FUNCTION disk_explore, dx, di
-	VARS
-		.s_disk_info: db "Exploring disk 0x%x.", CRLF, 0
-		.s_disk_struct_addr: db "Disk structure at 0x%x.", CRLF, 0
-		.u64_lba:     dq 0
-		.u8_disk_id:  db 0 ; Disk number, starting from 0.
-	ENDVARS
-
-	mov ax, ARG(1)
-	mov [.u8_disk_id], al
-	or ax, 0x80
-	INVOKE printf, .s_disk_info, ax
-
-	; Load the current disk info structure address into DI.
-
-	xor ax, ax
-	mov al, [.u8_disk_id]
-	INVOKE get_diskinfo_struct, ax
-	mov di, ax
-
-	INVOKE printf, .s_disk_struct_addr, di
-	mov ax, ARG(1)
-	or ax, 0x80
-	mov [di + t_disk_info.disk_id], ax
-
-	; TODO:
-	;       1. Get drive parameters
-	;       2. Fill disk_info structure
-	;       3. Read sector 1
-	;       4. Parse MBR
-	;       5. Loop through primary partitions
-	;       6. (optional) Detect extended partitions, loop through logical partitions
-	;       7. Detect GPT and panic
-	;       8. Fill part_info structures
-	;       9. Find boot disk/partition (how? by UUID?)
-
-	RETURN_VOID dx, di
-
-;; Detects all fixed disks and fills disk info structures.
-FUNCTION disk_detect_all, cx, dx
-	VARS
-		.s_disks_detected: db "Detected %u fixed disk(s).", CRLF, 0
-	ENDVARS
-
-	mov dl, [BDA(hd_count)]
-	mov [DISKINFO(disk_count)], dl
-
-	xor dh, dh
-	INVOKE printf, .s_disks_detected, dx
-
-	; Loop through the disks.
-	xor cx, cx
-.loop:
-	cmp dx, cx
-	jle .done
-
-	INVOKE disk_explore, cx
-
-	inc cx
-	jmp .loop
-.done:
-
-	RETURN 0, cx, dx
+END
 
 %endif ; _IO_DISK_ASM

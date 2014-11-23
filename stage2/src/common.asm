@@ -54,10 +54,8 @@
 	.function_body:
 %endmacro
 
-;; Do NOT return from a subroutine (needed to pop function context).
-;; Jumps to hang.
+;; Do NOT return from a subroutine. Jumps to hang.
 %macro NORETURN 0
-	%pop
 	jmp hang
 %endmacro
 
@@ -96,6 +94,11 @@
 	pop bp
 
 	ret
+%endmacro
+
+;; Pop something from the context stack.
+%macro END 0
+	%pop
 %endmacro
 
 ;; Invoke a subroutine with zero or more arguments.

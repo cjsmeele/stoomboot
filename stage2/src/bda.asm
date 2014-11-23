@@ -21,8 +21,6 @@
 ; OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 ; THE SOFTWARE.
 
-%define BDA_START 0x0400
-
 ;; Bios Data Area structure.
 ;;
 ;; Sources consulted for field names:
@@ -141,6 +139,6 @@ struc t_bda
 
 endstruc
 
-%define BDA(s)  BDA_START + t_bda. %+ s
+%define BDA(s)  MEM_BDA + t_bda. %+ s
 
 %endif ; _BDA_ASM

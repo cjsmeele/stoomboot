@@ -47,6 +47,7 @@ FUNCTION puts, si
 
 .done:
 	RETURN_VOID si
+END
 
 ;; Prints its argument and a newline.
 FUNCTION putln
@@ -56,6 +57,7 @@ FUNCTION putln
 	call   putbr
 
 	RETURN_VOID
+END
 
 ; }}}
 ; Printing hexadecimal numbers {{{
@@ -95,6 +97,7 @@ FUNCTION putbyte, dx
 				add al, '0'
 				int 0x10
 				ret
+END
 
 ;; Print a 16-bit number in hexadecimal.
 FUNCTION putword, dx
@@ -107,6 +110,7 @@ FUNCTION putword, dx
 	INVOKE putbyte, dx
 
 	RETURN_VOID dx
+END
 
 ; }}}
 ; Printing decimal numbers {{{
@@ -137,6 +141,7 @@ FUNCTION putunum, bx, dx, di
 	INVOKE puts, di
 
 	RETURN_VOID bx, dx, di
+END
 
 ;; Print a signed 16-bit number.
 FUNCTION putnum, bx, dx, di
@@ -159,6 +164,7 @@ FUNCTION putnum, bx, dx, di
 	jmp func_putunum.init ; Continue in putunum.
 
 	NORETURN
+END
 
 ; }}}
 
@@ -227,6 +233,7 @@ FUNCTION printf, bx, si, di
 	jmp .loop
 .done:
 	RETURN_VOID bx, si, di
+END
 
 ;; Change the cursor shape.
 FUNCTION set_cursor_shape, cx
@@ -237,5 +244,6 @@ FUNCTION set_cursor_shape, cx
 	int 0x10
 
 	RETURN_VOID cx
+END
 
 %endif ; _IO_CONSOLE_ASM

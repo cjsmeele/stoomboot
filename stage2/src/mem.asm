@@ -1,3 +1,6 @@
+%ifndef _MEM_ASM
+%define _MEM_ASM
+
 ; Copyright (c) 2014 Chris Smeele
 ;
 ; Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -18,60 +21,30 @@
 ; OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 ; THE SOFTWARE.
 
-[bits 16]
-[org 0x7e00]
+; Bootloader memory layout
+; ========================
+;
+; start     | end       | description
+; ----------+-----------+------------------------------
+; 0000.0400 | 0000.04ff | Bios Data Area
+; 0000.0500 | 0000.44ff | Disk I/O buffer
+; 0000.4500 | 0000.xxxx | Disk info structures
+; 0000.7c00 | 0000.7dff | Boot disk MBR, stage1
+; 0000.7e00 | 0000.xxxx | Stage2
+; 0001.0000 | 0008.ffff | Boot info structure
+; 0009.0000 | 0009.fbff | Stack
+; 0010.0000 | xxxx.xxxx | Kernel
 
-jmp start
+;; Location of the BIOS Data Area.
+%define MEM_BDA 0x400
 
-%include "common.asm"
-%include "config.asm"
-%include "mem.asm"
-%include "panic.asm"
-%include "bda.asm"
-%include "io/console.asm"
-%include "disk/info.asm"
-%include "io/disk.asm"
-%include "disk/dos-mbr.asm"
+;; Location of the first usable memory area.
+%define MEM_START 0x500
 
-start:
-	INVOKE main
-	INVOKE halt
+;; Location of the boot disk's master boot record.
+%define MEM_MBR 0x7c00
 
-FUNCTION main
-	VARS
-		.s_loading: db "stage2", 0
-	ENDVARS
+;; Disk I/O buffer size in bytes.
+%define MEM_DISK_IO_BUFFER_SIZE (CONFIG_DISK_IO_BUFFER_SIZE * 4096)
 
-	INVOKE putln, .s_loading
-	call putbr
-
-	INVOKE disk_detect_all
-
-	; TODO:
-	;       1.  Scan partition tables
-	;       2.  Find FAT32 boot partition
-	;       3.  Parse FAT and find boot config file
-	;       4.  Parse config
-	;       5.  Show an interactive boot menu (with cmdline?)
-	;       6.  Find a kernel image
-	;       7.  Parse kernel ELF
-	;       8.  Create a multiboot_info-like structure
-	;       9.  Create a memory map
-	;       10. Change video mode if required
-	;       11. Switch to protected mode
-	;       12. Jump to the kernel
-
-	RETURN_VOID
-END
-
-FUNCTION halt
-	VARS
-		.s_halt: db CRLF, "stage2: the system has been halted.", 0
-	ENDVARS
-
-	INVOKE putln, .s_halt
-hang:
-	cli
-	hlt
-	NORETURN
-END
+%endif ; _MEM_ASM

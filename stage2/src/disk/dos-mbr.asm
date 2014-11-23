@@ -1,3 +1,6 @@
+%ifndef _DISK_DOS_MBR_ASM
+%define _DISK_DOS_MBR_ASM
+
 ; Copyright (c) 2014 Chris Smeele
 ;
 ; Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -18,60 +21,34 @@
 ; OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 ; THE SOFTWARE.
 
-[bits 16]
-[org 0x7e00]
-
-jmp start
-
-%include "common.asm"
-%include "config.asm"
-%include "mem.asm"
-%include "panic.asm"
-%include "bda.asm"
-%include "io/console.asm"
-%include "disk/info.asm"
-%include "io/disk.asm"
-%include "disk/dos-mbr.asm"
-
-start:
-	INVOKE main
-	INVOKE halt
-
-FUNCTION main
+;; Parse a Master Boot Record's partition table stored in the disk io buffer (0x500)
+;; and fill the disk's partition info list.
+;; (disk_number)
+FUNCTION disk_dos_mbr_parse, di
 	VARS
-		.s_loading: db "stage2", 0
+		.u8_disk_number: db 0 ; 00h..*
+		.u8_disk_id:     db 0 ; 80h..*
 	ENDVARS
 
-	INVOKE putln, .s_loading
-	call putbr
+	mov ax, ARG(1)
+	mov [.u8_disk_number], al
 
-	INVOKE disk_detect_all
+	xor ax, ax
+	mov al, [.u8_disk_id]
+	INVOKE get_diskinfo_struct, ax
+	mov di, ax
+
+	mov ax, [di + t_disk_info.disk_id]
+	mov [.u8_disk_id], al
 
 	; TODO:
-	;       1.  Scan partition tables
-	;       2.  Find FAT32 boot partition
-	;       3.  Parse FAT and find boot config file
-	;       4.  Parse config
-	;       5.  Show an interactive boot menu (with cmdline?)
-	;       6.  Find a kernel image
-	;       7.  Parse kernel ELF
-	;       8.  Create a multiboot_info-like structure
-	;       9.  Create a memory map
-	;       10. Change video mode if required
-	;       11. Switch to protected mode
-	;       12. Jump to the kernel
+	;       1. Parse MBR
+	;       2. Loop through primary partitions
+	;       3. (optional) Detect extended partitions, loop through logical partitions
+	;       4. Detect GPT and panic
+	;       5. Fill part_info structures
 
-	RETURN_VOID
+	RETURN 0, di
 END
 
-FUNCTION halt
-	VARS
-		.s_halt: db CRLF, "stage2: the system has been halted.", 0
-	ENDVARS
-
-	INVOKE putln, .s_halt
-hang:
-	cli
-	hlt
-	NORETURN
-END
+%endif ; _DISK_DOS_MBR_ASM
