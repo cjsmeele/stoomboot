@@ -126,8 +126,8 @@ FUNCTION putunum, bx, dx, di
 
 .loop:
 	; Fill the buffer from back to front, leaving the terminating NUL byte.
-	mov dx, 0
-	div bx ; ax = quotient, dx = remainder
+	xor dx, dx
+	div bx ; ax = quotient, dx = remainder.
 	add dl, '0'
 	dec di
 	mov [di], dl
@@ -165,7 +165,7 @@ FUNCTION putnum, bx, dx, di
 ;; A very basic printf implementation.
 FUNCTION printf, bx, si, di
 
-	mov bx, 0 ; state: 0 = default, 1 = got % char.
+	xor bx, bx ; state: 0 = default, 1 = got % char.
 
 	mov di, bp
 	add di, 6 ; Address of the second parameter.

@@ -122,8 +122,6 @@
 
 %define CRLF 0x0d, 0x0a
 
-%define BDA(n) 0x0400 + n
-
 ; }}}
 
 %endif ; _COMMON_ASM
