@@ -63,9 +63,13 @@
 
 ;; Return from a subroutine. Pop register arguments from the stack.
 %macro RETURN_VOID 0-*
+	%if %0 > 0
+		%rotate -1
+	%endif
+
 	%rep %0
 		pop %1
-		%rotate 1
+		%rotate -1
 	%endrep
 
 	mov sp, bp

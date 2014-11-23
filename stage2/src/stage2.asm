@@ -35,9 +35,19 @@ start:
 FUNCTION main
 	VARS
 		.s_loading: db "stage2", 0
+		.s_fmt:     db "some numbers: %u, %u, %u, %u, %d, %d, %d, 0x%x", CRLF, 0
+		.s_fmt2:    db "some more numbers: %d, %d, %d, %d, %d, %d", CRLF, 0
+		.s_fmt3:    db "an embedded string: %d, '%s', %d", CRLF, 0
+		.s_foo:     db "foo", 0
 	ENDVARS
 
 	INVOKE putln, .s_loading
+
+	call putbr
+
+	INVOKE printf, .s_fmt,  1, 2, 123, 0x8000, -1, -42, 0x8000, 65000
+	INVOKE printf, .s_fmt2, 0, -1, -2, 3, 4, -2341
+	INVOKE printf, .s_fmt3, 0x8539, .s_foo, 42
 
 	; TODO:
 	;       1.  Scan partition table
