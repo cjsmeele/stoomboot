@@ -85,7 +85,7 @@ if($o_mbr){
 	die "$0: bytes 437..510 in mbr stage1 should be set to NUL\n"
 		if grep { $_ } @stage1[436..509];
 
-	die "$0: stage1 bootsector does not contain magic 0x55 0xaa sting\n"
+	die "$0: stage1 bootsector does not contain magic 0x55 0xaa string\n"
 		unless [@stage1[510, 511]] ~~ [0x55, 0xaa];
 
 	die "$0: first instruction in stage1 bootsector should be a far jump (0xea)\n"
