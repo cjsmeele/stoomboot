@@ -28,7 +28,7 @@
 ;; Sources consulted for field names:
 ;; - http://www.bioscentral.com/misc/bda.htm
 ;; - http://www.nondot.org/sabre/os/files/Booting/BIOS_SEG.txt
-struc struct_bda
+struc t_bda
 	; 00h
 	.com1_io resw 1
 	.com2_io resw 1
@@ -141,6 +141,6 @@ struc struct_bda
 
 endstruc
 
-%define BDA(s)  BDA_START + struct_bda. %+ s
+%define BDA(s)  BDA_START + t_bda. %+ s
 
 %endif ; _BDA_ASM

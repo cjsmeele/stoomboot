@@ -26,6 +26,7 @@ jmp start
 %include "common.asm"
 %include "bda.asm"
 %include "io/console.asm"
+%include "io/disk.asm"
 
 
 start:
@@ -36,33 +37,26 @@ start:
 FUNCTION main
 	VARS
 		.s_loading: db "stage2", 0
-		.s_kb_status: db 0x0d, "Keyboard flags: 0x%x (try pressing modifier keys)", 0
 	ENDVARS
 
 	INVOKE putln, .s_loading
 	call putbr
 
-.loop:
-	mov dh, [BDA(kb_flags_1)]
-	mov dl, [BDA(kb_flags_2)]
-	INVOKE printf, .s_kb_status, dx
-	hlt
-	jmp .loop
+	INVOKE disk_detect_all
 
 	; TODO:
-	;       1.  Scan partition table
+	;       1.  Scan partition tables
 	;       2.  Find FAT32 boot partition
 	;       3.  Parse FAT and find boot config file
 	;       4.  Parse config
 	;       5.  Show an interactive boot menu (with cmdline?)
 	;       6.  Find a kernel image
 	;       7.  Parse kernel ELF
-	;       8.  Parse multiboot header
-	;       9.  Create a multiboot info struct
-	;       10. Create a memory map
-	;       11. Change video mode if requested
-	;       12. Switch to protected mode
-	;       13. Jump to the kernel
+	;       8.  Create a multiboot_info-like structure
+	;       9.  Create a memory map
+	;       10. Change video mode if required
+	;       11. Switch to protected mode
+	;       12. Jump to the kernel
 
 	RETURN_VOID
 
