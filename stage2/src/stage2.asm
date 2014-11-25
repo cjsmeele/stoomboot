@@ -19,13 +19,18 @@
 ; THE SOFTWARE.
 
 [bits 16]
-[org 0x7e00]
+
+%include "config.asm"
+%include "mem.asm"
+
+[org MEM_STAGE2]
+
+db 0xfa, 0xf4     ; cli, hlt
+db "STAGE2", 0, 0 ; magic!
 
 jmp start
 
 %include "common.asm"
-%include "config.asm"
-%include "mem.asm"
 %include "panic.asm"
 %include "bda.asm"
 %include "io/console.asm"
@@ -34,7 +39,7 @@ jmp start
 %include "disk/dos-mbr.asm"
 
 start:
-	INVOKE main
+	INVOKE main, ax
 	INVOKE halt
 
 FUNCTION main
@@ -46,6 +51,8 @@ FUNCTION main
 	call putbr
 
 	INVOKE disk_detect_all
+
+	; The boot device number is stored in ARG(1)
 
 	; TODO:
 	;       1.  Scan partition tables

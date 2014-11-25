@@ -108,13 +108,6 @@ FUNCTION disk_explore, si, di
 	;       2. Fill disk_info structure
 	;   x   3. Read sector 0
 
-	; Read sector 0 (.u64_lba should already be 0, but zero it anyway).
-	push di
-	mov di, .u64_lba
-	mov ax, 0
-	times 4 stosw
-	pop di
-
 	xor ax, ax
 	mov al, [di + t_disk_info.disk_id]
 	INVOKE disk_read_sectors, ax, .u64_lba, 1, 0, 0, buf_disk_io

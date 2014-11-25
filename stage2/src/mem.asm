@@ -44,6 +44,9 @@
 ;; Location of the boot disk's master boot record.
 %define MEM_MBR 0x7c00
 
+;; Origin of this program.
+%define MEM_STAGE2 (MEM_MBR + 0x200)
+
 ;; Disk I/O buffer size in bytes.
 %define MEM_DISK_IO_BUFFER_SIZE (CONFIG_DISK_IO_BUFFER_SIZE * 4096)
 
