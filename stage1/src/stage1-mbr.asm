@@ -113,11 +113,18 @@ has_int13h_extensions:
 
 ;; Entrypoint.
 start:
-	; Set up the stack.
 	cli
+	; Set up the stack.
 	mov ax, 0x9000
 	mov ss, ax
 	mov sp, 0xfbff
+	; Reset segment registers.
+	xor ax, ax
+	; The code segment is already set to 0x0000 by the far jump.
+	mov ds, ax
+	mov es, ax
+	mov fs, ax
+	mov gs, ax
 	sti
 
 	mov [u8_boot_device], dl
