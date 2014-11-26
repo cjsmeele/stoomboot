@@ -55,14 +55,20 @@ INFILES := $(STAGE1_MBR_BIN) $(STAGE1_FAT32_BIN) $(STAGE2_BIN) $(KERNEL_BIN)
 QEMU   ?= qemu-system-i386
 SFDISK ?= sfdisk
 DD     ?= dd
+GDB    ?= gdb
 
 # }}}
 # Toolkit flags {{{
 
+SFDISKFLAGS := -H 64 -S 32
+
 QEMUFLAGS   := -m 64M -name "osdev" -net none -serial stdio -vga std \
 	-drive file=$(DISKFILE),if=scsi,media=disk,format=raw
 
-SFDISKFLAGS := -H 64 -S 32
+QEMUFLAGS_DEBUG := -m 64M -name "osdev" -net none -serial none -vga std \
+	-drive file=$(DISKFILE),if=scsi,media=disk,format=raw -s -S
+
+GDBFLAGS := -q -n -x gdbrc
 
 # }}}
 
@@ -70,13 +76,21 @@ SFDISKFLAGS := -H 64 -S 32
 
 # Make targets {{{
 
-.PHONY: all clean clean-all run disk stage1-mbr-bin stage1-fat32-bin stage2-bin kernel-bin
+.PHONY: all clean clean-all run run-debug debug disk stage1-mbr-bin stage1-fat32-bin stage2-bin kernel-bin
 
 all: $(DISKFILE)
 
 run: $(DISKFILE)
 	$(E) "  QEMU     $<"
 	$(Q)$(QEMU) $(QEMUFLAGS)
+
+run-debug: $(DISKFILE)
+	$(E) "  QEMU     $<"
+	$(Q)$(QEMU) $(QEMUFLAGS_DEBUG)
+
+debug:
+	$(E) "  GDB   "
+	$(Q)$(GDB) $(GDBFLAGS)
 
 clean:
 	$(E) "  CLEAN    $(OUTFILES)"

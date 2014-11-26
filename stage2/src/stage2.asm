@@ -55,7 +55,7 @@ FUNCTION main
 	; The boot device number is stored in ARG(1)
 
 	; TODO:
-	;       1.  Scan partition tables
+	;   x   1.  Scan partition tables
 	;       2.  Find FAT32 boot partition
 	;       3.  Parse FAT and find boot config file
 	;       4.  Parse config

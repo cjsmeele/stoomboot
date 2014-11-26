@@ -29,12 +29,13 @@ endstruc
 
 ;; Disk information.
 struc t_disk_info
-	.disk_id:         resb 1 ; BIOS drive number (80h, 81h, ... for harddisks).
-	.sector_size:     resw 1
-	.sector_count:    resd 1
-	.bus_type:        resb 4
-	.interface:       resb 8
-	.partition_count: resb 1
+	.disk_id:           resb 1 ; BIOS drive number (80h, 81h, ... for harddisks).
+	.sector_size:       resw 1
+	.sector_count:      resd 1
+	.bus_type:          resb 4
+	.interface:         resb 8
+	.extended_part_lba: resd 1
+	.partition_count:   resb 1
 	.partitions:
 endstruc
 
@@ -115,6 +116,8 @@ FUNCTION disk_explore, cx, dx, si, di
 	; Load the current disk info structure address into DI.
 	INVOKE get_diskinfo_struct, ax
 	mov di, ax
+
+	mov dword [di + t_disk_info.extended_part_lba], 0
 
 	; Store the BIOS drive number.
 	mov ax, ARG(1)

@@ -37,17 +37,125 @@ struc t_dos_mbr_part
 	.sector_count: resd 1
 endstruc
 
-;; Parse a MBR partition table entry.
-;; Creates one or more part_info structures at DI and adds their size to DI.
-;; Returns the amount of partitions added (may be >1 in case of an extended partition (TODO)).
-;; (dos_mbr_part_ptr) DI=part_info_ptr
-FUNCTION dos_mbr_parse_part_entry, si
+struc t_dos_ebr
+	.bootcode: resb 446
+	.pte:      resb 16
+	.next:     resb 16
+	.unused:   resb 32
+	.magic:    resb 2
+endstruc
+
+; EBR PTEs and MBR PTEs are essentially the same.
+%define t_dos_ebr_part t_dos_mbr_part
+
+;; Parse an EBR chain. See dos_mbr_parse_part_entry.
+;; (disk_info_ptr, lba_ptr, sector_count_ptr) DI=part_info_ptr
+FUNCTION dos_mbr_parse_ebr_chain, bx, dx, si
 	VARS
-		.s_gpt_warning: db "warning: Protective MBR detected. GPT partitions will not be parsed.", CRLF, 0
-		.s_ebr_warning: db "warning: Extended partition detected. Logical partitions will not be parsed.", CRLF, 0
+		.s_read_error: db "warning: Could not read EBR sector, AX=%xh", CRLF, 0
+		.s_ebr_explore: db "Parsing EBR", CRLF, 0
+		.u32_lba: dd 0
+		.u64_lba: dq 0
+		.u64_sector_count: dq 0 ; Currently unused.
+		.s_next_ebr: db "Loading next EBR, LBA @ 0x%x", CRLF, 0
 	ENDVARS
 
-	mov si, ARG(1)
+	; The MBR only supports 32-bit LBAs and sector counts,
+	; copy them over to 64-bit pointers.
+	mov bx, ARG(2)
+	mov eax, [bx]
+	mov [.u64_lba], eax
+	mov bx, ARG(3)
+	mov eax, [bx]
+	mov [.u64_sector_count + 4], eax
+
+	push di
+	mov di, ARG(1)
+	xor ax, ax
+	mov al, [di + t_disk_info.disk_id]
+
+	INVOKE disk_read_sectors, ax, .u64_lba, 1, 0, 0, MEM_DISK_IO_BUFFER + 512
+	pop di
+	or ax, ax
+	jz .got_ebr
+
+	.read_error:
+		INVOKE printf, .s_read_error, ax
+		RETURN 0, bx, dx, si
+
+.got_ebr:
+	mov si, MEM_DISK_IO_BUFFER + 512
+	push si
+	lea si, [si + t_dos_ebr.pte]
+	mov eax, [si + t_dos_mbr_part.sector_count]
+	mov ebx, [si + t_dos_mbr_part.lba_start]
+	mov dx, 0 ; Whether we got a partition.
+	or eax, eax
+	jz .next_ebr
+
+.add_partition:
+	inc dx
+	mov al, [si + t_dos_mbr_part.system_id]
+	mov [di + t_part_info.system_id], al
+
+	mov al, [si + t_dos_mbr_part.active]
+	mov [di + t_part_info.active], al
+
+	mov eax, [si + t_dos_mbr_part.sector_count]
+	mov [di + t_part_info.sector_count], eax
+	push di
+	mov di, ARG(2)
+	mov eax, [di]
+	add eax, [si + t_dos_mbr_part.lba_start]
+	pop di
+	mov [di + t_part_info.lba_start], eax
+
+	add di, t_part_info_size
+
+.next_ebr:
+	pop si
+	lea si, [si + t_dos_ebr.next]
+	mov eax, [si + t_dos_mbr_part.sector_count]
+	or eax, eax
+	jz .was_last_ebr
+
+.got_next_ebr:
+	push di
+	mov di, ARG(1)
+	mov eax, [di + t_disk_info.extended_part_lba]
+	add eax, [si + t_dos_mbr_part.lba_start]
+	mov [.u32_lba], eax
+	pop di
+
+	; TODO: Check for overflows etc? (Should not happen with non-corrupted partition tables).
+
+	push ax
+	INVOKE printf, .s_next_ebr, .u32_lba
+	pop ax
+
+	push dx
+	mov dx, ARG(1)
+	lea si, [si + t_dos_mbr_part.sector_count]
+	lea ax, [si + t_dos_mbr_part.sector_count]
+	INVOKE dos_mbr_parse_ebr_chain, dx, .u32_lba, ax
+	pop dx
+	add dx, ax
+
+.was_last_ebr:
+
+	RETURN dx, bx, dx, si
+END
+
+;; Parse a MBR partition table entry.
+;; Creates one or more part_info structures at DI and adds their size to DI.
+;; Returns the amount of partitions added (may be >1 in case of an extended partition).
+;; (disk_info_ptr, dos_mbr_part_ptr) DI=part_info_ptr
+FUNCTION dos_mbr_parse_part_entry, bx, si
+	VARS
+		.s_gpt_warning: db "warning: Protective MBR detected. GPT partitions will not be parsed.", CRLF, 0
+	ENDVARS
+
+	mov si, ARG(2)
 
 	; Detect PTE validity by checking the sector count.
 	; This is probably not according to spec: Valid CHS values may exist, I'm
@@ -57,7 +165,7 @@ FUNCTION dos_mbr_parse_part_entry, si
 	jnz .has_sector_count
 
 	.no_sector_count:
-		RETURN 0, si
+		RETURN 0, bx, si
 
 .has_sector_count:
 	xor ax, ax
@@ -69,6 +177,7 @@ FUNCTION dos_mbr_parse_part_entry, si
 	je .has_gpt
 
 	.is_normal_primary_partition:
+		; Copy partition info to part_info structs.
 		mov [di + t_part_info.system_id], al
 
 		mov al, [si + t_dos_mbr_part.active]
@@ -81,15 +190,25 @@ FUNCTION dos_mbr_parse_part_entry, si
 
 		add di, t_part_info_size
 
-		RETURN 1, si
+		RETURN 1, bx, si
 
 	.has_gpt:
 		INVOKE puts, .s_gpt_warning
-		RETURN 0, si
-	.has_ebr:
-		INVOKE puts, .s_ebr_warning
-		RETURN 0, si
+		RETURN 0, bx, si
 
+	.has_ebr:
+		lea bx, [si + t_dos_mbr_part.lba_start]
+		lea ax, [si + t_dos_mbr_part.sector_count]
+
+		mov si, ARG(1)
+		push bx
+		mov ebx, [bx]
+		mov [si + t_disk_info.extended_part_lba], ebx
+		pop bx
+
+		INVOKE dos_mbr_parse_ebr_chain, si, bx, ax
+
+		RETURN ax, bx, si
 END
 
 ;; Parse a Master Boot Record's partition table stored in the disk io buffer (0x500)
@@ -122,7 +241,8 @@ FUNCTION disk_dos_mbr_parse, cx, dx, si, di
 	; Loop through primary partitions.
 	xor cx, cx
 .partloop:
-	INVOKE dos_mbr_parse_part_entry, si
+	mov ax, ARG(1)
+	INVOKE dos_mbr_parse_part_entry, ax, si, 0
 	push di
 	mov di, [.u16_disk_info_ptr]
 	add [di + t_disk_info.partition_count], al
@@ -133,13 +253,6 @@ FUNCTION disk_dos_mbr_parse, cx, dx, si, di
 	inc cx
 	cmp cx, 4
 	jl .partloop
-
-	; TODO:
-	;   x   1. Parse MBR
-	;   x   2. Loop through primary partitions
-	;       3. (optional) Detect extended partitions, loop through logical partitions
-	;   x   4. (optional) Detect protective MBR / GPT.
-	;   x   5. Fill part_info structures
 
 	RETURN 0, cx, dx, si, di
 END

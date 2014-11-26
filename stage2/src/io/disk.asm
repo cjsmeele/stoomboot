@@ -51,6 +51,7 @@ FUNCTION disk_read_sectors, dx, si, di
 	mov si, ARG(4) ; Pointer to linear destination address.
 	or si, si
 	jz .no_flat
+
 	.has_flat:
 		mov byte [struct_dap.length], 0x18
 		mov ax, 0xffff
@@ -61,6 +62,7 @@ FUNCTION disk_read_sectors, dx, si, di
 		times 2 movsd ; Copy it over.
 
 		jmp .have_dest
+
 	.no_flat: ; Flat address is zero, accept segment:offset arguments.
 		mov byte [struct_dap.length], 0x10
 		mov ax, ARG(5)
@@ -74,9 +76,11 @@ FUNCTION disk_read_sectors, dx, si, di
 	mov ah, 0x42
 	int 0x13
 	jc .error
+
 	RETURN 0, dx, si, di
+
 	.error:
-		RETURN 1, dx, si, di
+		RETURN ax, dx, si, di
 END
 
 %endif ; _IO_DISK_ASM
