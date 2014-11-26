@@ -47,6 +47,9 @@
 ;; Origin of this program.
 %define MEM_STAGE2 (MEM_MBR + 0x200)
 
+;; Disk I/O buffer.
+%define MEM_DISK_IO_BUFFER MEM_START
+
 ;; Disk I/O buffer size in bytes.
 %define MEM_DISK_IO_BUFFER_SIZE (CONFIG_DISK_IO_BUFFER_SIZE * 4096)
 

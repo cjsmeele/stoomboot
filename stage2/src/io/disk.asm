@@ -21,7 +21,7 @@
 ; OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 ; THE SOFTWARE.
 
-absolute 0x500
+absolute MEM_DISK_IO_BUFFER
 	buf_disk_io: resb MEM_DISK_IO_BUFFER_SIZE
 section .text
 
@@ -43,7 +43,7 @@ struct_dap:
 FUNCTION disk_read_sectors, dx, si, di
 	mov si, ARG(2) ; Pointer to LBA.
 	mov di, struct_dap.lba
-	times 4 movsw ; Copy it over.
+	times 2 movsd ; Copy it over.
 
 	mov ax, ARG(3)
 	mov [struct_dap.blocks], ax
@@ -58,7 +58,7 @@ FUNCTION disk_read_sectors, dx, si, di
 		mov [struct_dap.dest_offset],  ax
 
 		mov di, struct_dap.dest_flat
-		times 4 movsw ; Copy it over.
+		times 2 movsd ; Copy it over.
 
 		jmp .have_dest
 	.no_flat: ; Flat address is zero, accept segment:offset arguments.

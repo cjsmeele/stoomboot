@@ -40,16 +40,14 @@ endstruc
 
 ;; Partition information.
 struc t_part_info
-	.disk_info_ptr: resw 1
-	.part_number:   resb 1
-	.system_id:     resb 1
-	.sector_start:  resq 1
-	.sector_count:  resq 1
-	.label:         resb 17
-	.bootable:      resb 1
+	.system_id:    resb 1
+	.lba_start:    resq 1
+	.sector_count: resq 1
+	.label:        resb 17
+	.active:       resb 1
 endstruc
 
-absolute MEM_START + MEM_DISK_IO_BUFFER_SIZE
+absolute MEM_DISK_IO_BUFFER + MEM_DISK_IO_BUFFER_SIZE
 	struct_disks_info: resb MEM_MBR - struct_disks_info ; Reserve memory all the way up to our bootsector.
 section .text
 
@@ -57,17 +55,36 @@ section .text
 
 
 ;; Returns a pointer to the disk_info structure for the given disk number.
+;; Note that disk_info structs of disks with lower disk numbers must already
+;; be loaded for this to work.
 ;; (disk_number)
-FUNCTION get_diskinfo_struct, dx, di
+FUNCTION get_diskinfo_struct, cx, dx, di
 	mov ax, t_disk_info_size
-	mov dx, ARG(1)
-	mul dx
 	lea di, [DISKINFO(disks)]
+
+	; disk_info structures are sized according to the amount of partitions.
+	; Loop through lower disk numbers to get the address of the requested
+	; disk_info.
+	xor cx, cx
+.next_disk:
+	cmp cx, ARG(1)
+	jge .done
+
+	xor ax, ax
+	mov al, [di + t_disk_info.partition_count]
+
+	mov dx, t_part_info_size
+	mul dx
+
+	add ax, t_disk_info_size
 	add di, ax
 
-	; TODO: Skip the dynamically sized partitions property of disk info structs.
+	inc cx
+	jmp .next_disk
 
-	RETURN di, dx, di
+.done:
+
+	RETURN di, cx, dx, di
 END
 
 ;; Returns a pointer to the part_info structure for the given disk number and partition.
@@ -79,14 +96,17 @@ END
 
 ;; Fill a disk_info structure by parsing a disk's partition table.
 ;; (disk_number)
-FUNCTION disk_explore, si, di
+FUNCTION disk_explore, cx, dx, si, di
 	VARS
 		.s_disk_explore: db "Exploring disk %xh (disk_info at 0x%x)", CRLF, 0
 		.s_disk_mbr_read_error: db \
-			"warning: A disk read error occurred while trying to read the MBR of disk %xh", 0
+			"warning: A disk read error occurred while trying to read the MBR of disk %xh", CRLF, 0
 
 		.u64_lba:        dq 0
 		.u8_disk_number: db 0
+
+		.s_disk_info:      db "- found %u partition(s):", CRLF, 0
+		.s_partition_info: db "  - %x: active: %x, type: %x, start: 0x%x%x size: 0x%x%x", CRLF, 0
 	ENDVARS
 
 	mov ax, ARG(1)
@@ -118,14 +138,47 @@ FUNCTION disk_explore, si, di
 		xor ax, ax
 		mov al, [di + t_disk_info.disk_id]
 		INVOKE printf, .s_disk_mbr_read_error, ax
-		RETURN 1, si, di
+		RETURN 1, cx, dx, si, di
 
 .read_done:
 	; Blindly assume that this is a DOS style MBR.
-	mov ax, ARG(1)
-	INVOKE disk_dos_mbr_parse, ax
+	INVOKE disk_dos_mbr_parse, di
 
-	RETURN 0, si, di
+	lea si, [di + t_disk_info.partitions]
+	mov al, [di + t_disk_info.partition_count]
+	xor ah, ah
+	INVOKE printf, .s_disk_info, ax
+
+	xor cx, cx
+.partloop:
+	cmp cl, [di + t_disk_info.partition_count]
+	jge .endpartloop
+
+	mov dx, [si + t_part_info.sector_count]
+	push dx
+	mov dx, [si + t_part_info.sector_count + 2]
+	push dx
+	mov dx, [si + t_part_info.lba_start]
+	push dx
+	mov dx, [si + t_part_info.lba_start + 2]
+	push dx
+	mov dl, [si + t_part_info.system_id]
+	xor dh, dh
+	mov al, [si + t_part_info.active]
+	xor ah, ah
+
+	INVOKE printf, .s_partition_info, cx, ax, dx
+	add sp, 4*2
+	add si, t_part_info_size
+
+	inc cx
+	jmp .partloop
+
+.endpartloop:
+
+	call putbr
+
+	RETURN 0, cx, dx, si, di
 END
 
 ;; Detects all fixed disks and fills disk info structures.

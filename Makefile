@@ -12,14 +12,10 @@ E := @echo
 MAKEFLAGS += --no-print-directory
 endif
 
-DISKSIZE_M   ?= 128
-# Assume the default shell supports arithmetic expansion.
-PART_SECTORS := $$(($(DISKSIZE_M) * 1024 * 2 - 2048))
-
 # }}}
 # Package metadata {{{
 
-PACKAGE_NAME    := takos
+PACKAGE_NAME    := osdev
 PACKAGE_VERSION := $(shell git describe --always --dirty)
 
 ifndef PACKAGE_VERSION
@@ -101,15 +97,17 @@ $(DISKFILE): $(STAGE1_MBR_BIN) $(STAGE2_BIN) $(KERNEL_BIN)
 	$(E) "=========="
 	$(Q)mkdir -p $(@D)
 	$(E) "  DD       $@"
-	$(Q)$(DD) $(DDFLAGS) if=/dev/zero of=$@ bs=1M count=$(DISKSIZE_M) 2>/dev/null
+	$(Q)$(DD) $(DDFLAGS) if=/dev/zero of=$@ bs=1M count=128 2>/dev/null
 	$(E) "  SFDISK   $@"
 	$(Q)/bin/echo -e \
 	"unit: sectors\n"\
 	"\n"\
-	"boot.img1 : start = 2048, size= "$(PART_SECTORS)", Id= c, bootable\n"\
-	"boot.img2 : start =    0, size= 0, Id= 0\n"\
-	"boot.img3 : start =    0, size= 0, Id= 0\n"\
-	"boot.img4 : start =    0, size= 0, Id= 0"\
+	""$(DISKFILE)"1 : start=     2048, size=   129024, Id= c, bootable\n"\
+	""$(DISKFILE)"2 : start=   131072, size=    65536, Id= 5\n"\
+	""$(DISKFILE)"3 : start=        0, size=        0, Id= 0\n"\
+	""$(DISKFILE)"4 : start=   196608, size=    65536, Id=83\n"\
+	""$(DISKFILE)"5 : start=   131104, size=    12288, Id=83\n"\
+	""$(DISKFILE)"6 : start=   143424, size=    53184, Id=83"\
 	| $(SFDISK) $(SFDISKFLAGS) $@ >/dev/null
 	$(E) "  INSTALL  $@"
 	$(Q)perl tools/loader-install.pl \
