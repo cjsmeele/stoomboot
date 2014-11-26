@@ -98,12 +98,24 @@ END
 FUNCTION disk_dos_mbr_parse, cx, dx, si, di
 	VARS
 		.u16_disk_info_ptr: dw 0
+		.s_no_mbr: db "warning: Disk %xh does not have a valid MBR", CRLF, 0
 	ENDVARS
 
 	mov ax, ARG(1)
 	mov [.u16_disk_info_ptr], ax
 	mov di, ax
 
+	mov ax, [MEM_DISK_IO_BUFFER + 510]
+	cmp ax, 0xaa55
+	je .has_valid_mbr
+
+	.no_mbr:
+		mov al, [di + t_disk_info.disk_id]
+		xor ah, ah
+		INVOKE printf, .s_no_mbr, ax
+		RETURN 1, cx, dx, si, di
+
+.has_valid_mbr
 	lea di, [di + t_disk_info.partitions]
 	lea si, [MEM_DISK_IO_BUFFER + t_dos_mbr.part_table]
 
