@@ -60,6 +60,20 @@ section .text
 ;; be loaded for this to work.
 ;; (disk_number)
 FUNCTION get_diskinfo_struct, cx, dx, di
+	VARS
+		.s_disk_out_of_range: db "error: Disk number %u is out of range", CRLF, 0
+	ENDVARS
+
+	mov ax, ARG(1)
+	mov dl, [DISKINFO(disk_count)]
+	xor dh, dh
+	cmp ax, dx
+	jl .disk_number_ok
+
+	INVOKE printf, .s_disk_out_of_range, ax
+	INVOKE panic
+
+.disk_number_ok:
 	mov ax, t_disk_info_size
 	lea di, [DISKINFO(disks)]
 
@@ -88,11 +102,34 @@ FUNCTION get_diskinfo_struct, cx, dx, di
 	RETURN di, cx, dx, di
 END
 
-;; Returns a pointer to the part_info structure for the given disk number and partition.
+;; Returns a pointer to the part_info structure for the given disk and partition number.
 ;; (disk_number, partition_number)
-FUNCTION get_partinfo_struct
-	; TODO
-	RETURN 0
+FUNCTION get_partinfo_struct, dx, di
+	VARS
+		.s_part_out_of_range: db "error: Partition number %u for disk %u is out of range", CRLF, 0
+	ENDVARS
+
+	mov ax, ARG(1)
+	INVOKE get_diskinfo_struct, ax
+	mov di, ax
+
+	mov ax, ARG(2)
+	mov dl, [di + t_disk_info.partition_count]
+	xor dh, dh
+	cmp ax, dx
+	jl .part_number_ok
+
+	mov dx, ARG(1)
+	INVOKE printf, .s_part_out_of_range, ax, dx
+	INVOKE panic
+
+.part_number_ok:
+	lea di, [di + t_disk_info.partitions]
+	mov ax, t_part_info_size
+	mul word ARG(2)
+	add di, ax
+
+	RETURN di, dx, di
 END
 
 ;; Fill a disk_info structure by parsing a disk's partition table.
