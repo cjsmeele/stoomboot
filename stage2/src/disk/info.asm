@@ -57,14 +57,6 @@ struc t_disk_dpt
 	.bytes_per_sector:  resw 1
 endstruc
 
-
-absolute MEM_DISK_INFO
-	struct_disks_info: resb MEM_MBR - struct_disks_info ; Reserve memory all the way up to our bootsector.
-section .text
-
-%define DISKINFO(s) struct_disks_info + t_disks_info. %+ s
-
-
 ;; Returns a pointer to the disk_info structure for the given disk number.
 ;; Note that disk_info structs of disks with lower disk numbers must already
 ;; be loaded for this to work.
@@ -154,6 +146,8 @@ FUNCTION disk_save_params, di
 
 	mov ax, [di + t_disk_info.disk_id]
 	INVOKE disk_get_params, ax, MEM_DISK_PARAM_BUFFER, MEM_DISK_PARAM_BUFFER_SIZE
+	or ax, ax
+	jnz .param_error
 
 	cmp word [MEM_DISK_PARAM_BUFFER], 24 ; int13h fills this with the returned buffer length.
 	jl .not_enough_params
@@ -196,6 +190,9 @@ FUNCTION disk_save_params, di
 		; Pretend that we have the maximum amount of sectors for code using 32-bit addresses.
 		mov dword [di + t_disk_info.sector_count], 0xffffffff
 		RETURN 0, di
+
+	.param_error:
+		RETURN 1, di
 
 	.not_enough_params:
 		mov ax, [di + t_disk_info.disk_id]
@@ -240,8 +237,8 @@ FUNCTION disk_explore, cx, dx, si, di
 	push ax
 	INVOKE disk_save_params, di
 	or ax, ax
-	jnz .endpartloop ; Skip this drive if we can't get the sector count.
 	pop ax
+	jnz .endpartloop ; Skip this drive if we can't get the sector count.
 
 	INVOKE printf, .s_disk_explore, ax, di
 
