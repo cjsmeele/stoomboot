@@ -57,7 +57,7 @@ FUNCTION dos_mbr_parse_ebr_chain, bx, dx, si
 		.u32_lba: dd 0
 		.u64_lba: dq 0
 		.u64_sector_count: dq 0 ; Currently unused.
-		.s_next_ebr: db "Loading next EBR, LBA @ 0x%x", CRLF, 0
+		;.s_next_ebr: db "Loading next EBR, LBA @ 0x%x", CRLF, 0
 	ENDVARS
 
 	; The MBR only supports 32-bit LBAs and sector counts,
@@ -129,9 +129,9 @@ FUNCTION dos_mbr_parse_ebr_chain, bx, dx, si
 
 	; TODO: Check for overflows etc? (Should not happen with non-corrupted partition tables).
 
-	push ax
-	INVOKE printf, .s_next_ebr, .u32_lba
-	pop ax
+	;push ax
+	;INVOKE printf, .s_next_ebr, .u32_lba
+	;pop ax
 
 	push dx
 	mov dx, ARG(1)

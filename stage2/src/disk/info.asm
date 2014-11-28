@@ -30,10 +30,8 @@ endstruc
 ;; Disk information.
 struc t_disk_info
 	.disk_id:           resb 1 ; BIOS drive number (80h, 81h, ... for harddisks).
-	.sector_size:       resw 1
-	.sector_count:      resd 1
-	.bus_type:          resb 4
-	.interface:         resb 8
+	.sector_count_u64:  resq 1
+	.sector_count:      resd 1 ; 32-bit sector count. Caps at 0xffff.ffff.
 	.extended_part_lba: resd 1
 	.partition_count:   resb 1
 	.partitions:
@@ -48,7 +46,19 @@ struc t_part_info
 	.active:       resb 1
 endstruc
 
-absolute MEM_DISK_IO_BUFFER + MEM_DISK_IO_BUFFER_SIZE
+;; Drive Parameter Table.
+struc t_disk_dpt
+	.size:              resw 1
+	.flags:             resw 1
+	.cylinder_count:    resd 1
+	.head_count:        resd 1
+	.sectors_per_track: resd 1
+	.sector_count:      resq 1
+	.bytes_per_sector:  resw 1
+endstruc
+
+
+absolute MEM_DISK_INFO
 	struct_disks_info: resb MEM_MBR - struct_disks_info ; Reserve memory all the way up to our bootsector.
 section .text
 
@@ -65,7 +75,7 @@ FUNCTION get_diskinfo_struct, cx, dx, di
 	ENDVARS
 
 	mov ax, ARG(1)
-	mov dl, [DISKINFO(disk_count)]
+	mov dl, [MEM_DISK_INFO + t_disks_info.disk_count]
 	xor dh, dh
 	cmp ax, dx
 	jl .disk_number_ok
@@ -75,7 +85,7 @@ FUNCTION get_diskinfo_struct, cx, dx, di
 
 .disk_number_ok:
 	mov ax, t_disk_info_size
-	lea di, [DISKINFO(disks)]
+	lea di, [MEM_DISK_INFO + t_disks_info.disks]
 
 	; disk_info structures are sized according to the amount of partitions.
 	; Loop through lower disk numbers to get the address of the requested
@@ -132,11 +142,77 @@ FUNCTION get_partinfo_struct, dx, di
 	RETURN di, dx, di
 END
 
+;; Gets disk parameters and saves them in a disk_info structure.
+;; (diskinfo_ptr)
+FUNCTION disk_save_params, di
+	VARS
+		.s_not_enough:  db "warning: Not enough drive parameters returned by int13h for disk %xh", CRLF, 0
+		.s_unsupported_sector_size: db "warning: Support for sector sizes other than 512 (%u) is not yet implemented", CRLF, 0
+	ENDVARS
+
+	mov di, ARG(1)
+
+	mov ax, [di + t_disk_info.disk_id]
+	INVOKE disk_get_params, ax, MEM_DISK_PARAM_BUFFER, MEM_DISK_PARAM_BUFFER_SIZE
+
+	cmp word [MEM_DISK_PARAM_BUFFER], 24 ; int13h fills this with the returned buffer length.
+	jl .not_enough_params
+	; We're actually only interested in the amount of sectors and sector size.
+	; DPTE and DPI look useful but it doesn't seem like we can rely
+	; on their presence. We'll stick with int13h for accessing disks anyway.
+
+	; We might add support for the DPTE and DPI structures later as an optional
+	; feature, and pass that information on to the booted kernel to help identify
+	; the boot drive.
+
+	; Let's see how many drives actually have sector sizes other than 512 before
+	; we start supporting it.
+	mov ax, [MEM_DISK_PARAM_BUFFER + t_disk_dpt.bytes_per_sector]
+	cmp ax, 512
+	jne .unsupported_sector_size
+
+	mov eax, [MEM_DISK_PARAM_BUFFER + t_disk_dpt.sector_count]
+	mov [di + t_disk_info.sector_count], eax
+
+	; Keep a separate 64-bit sector count in disk_info.
+	; DOS MBR appears to be limited to 32-bit LBAs, so we currently cannot access
+	; sectors after 2 TiB (with 512-byte sectors).
+	; If we're ever going to support newer partitions tables like GPT, we might
+	; use this 64-bit value.
+
+	mov eax, [MEM_DISK_PARAM_BUFFER + t_disk_dpt.sector_count]
+	mov [di + t_disk_info.sector_count_u64], eax
+
+	mov eax, [MEM_DISK_PARAM_BUFFER + t_disk_dpt.sector_count + 4]
+	mov [di + t_disk_info.sector_count_u64 + 4], eax
+
+	or eax, eax
+	jnz .over_2tib
+
+	.below_2tib:
+		RETURN 0, di
+
+	.over_2tib:
+		; Pretend that we have the maximum amount of sectors for code using 32-bit addresses.
+		mov dword [di + t_disk_info.sector_count], 0xffffffff
+		RETURN 0, di
+
+	.not_enough_params:
+		mov ax, [di + t_disk_info.disk_id]
+		INVOKE printf, .s_not_enough, ax
+		RETURN 1, di
+
+	.unsupported_sector_size:
+		INVOKE printf, .s_unsupported_sector_size, ax
+		RETURN 1, di
+END
+
 ;; Fill a disk_info structure by parsing a disk's partition table.
 ;; (disk_number)
 FUNCTION disk_explore, cx, dx, si, di
 	VARS
 		.s_disk_explore: db "Exploring disk %xh (disk_info at 0x%x)", CRLF, 0
+		.s_sector_count: db "- disk has 0x%x%x 512-byte sectors", CRLF, 0
 		.s_disk_mbr_read_error: db \
 			"warning: A disk read error occurred while trying to read the MBR of disk %xh", CRLF, 0
 
@@ -161,16 +237,21 @@ FUNCTION disk_explore, cx, dx, si, di
 	or al, 0x80
 	mov [di + t_disk_info.disk_id], al
 
+	push ax
+	INVOKE disk_save_params, di
+	or ax, ax
+	jnz .endpartloop ; Skip this drive if we can't get the sector count.
+	pop ax
+
 	INVOKE printf, .s_disk_explore, ax, di
 
-	; TODO:
-	;       1. Get drive parameters
-	;       2. Fill disk_info structure
-	;   x   3. Read sector 0
+	mov ax, [di + t_disk_info.sector_count]
+	mov dx, [di + t_disk_info.sector_count + 2]
+	INVOKE printf, .s_sector_count, dx, ax
 
 	xor ax, ax
 	mov al, [di + t_disk_info.disk_id]
-	INVOKE disk_read_sectors, ax, .u64_lba, 1, 0, 0, buf_disk_io
+	INVOKE disk_read_sectors, ax, .u64_lba, 1, 0, 0, MEM_DISK_IO_BUFFER
 	or ax, ax
 	jz .read_done
 
@@ -228,7 +309,7 @@ FUNCTION disk_detect_all, cx, dx
 	ENDVARS
 
 	mov dl, [BDA(hd_count)]
-	mov [DISKINFO(disk_count)], dl
+	mov [MEM_DISK_INFO + t_disks_info.disk_count], dl
 
 	xor dh, dh
 	INVOKE printf, .s_disks_detected, dx

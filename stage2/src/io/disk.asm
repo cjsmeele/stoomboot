@@ -21,10 +21,6 @@
 ; OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 ; THE SOFTWARE.
 
-absolute MEM_DISK_IO_BUFFER
-	buf_disk_io: resb MEM_DISK_IO_BUFFER_SIZE
-section .text
-
 ;; Disk Address Packet structure.
 struct_dap:
 	.length:    db 0x10 ; DAP length. 0x10 or 0x18, if the 64-bit flat destination is used.
@@ -44,6 +40,8 @@ FUNCTION disk_read_sectors, dx, si, di
 	mov si, ARG(2) ; Pointer to LBA.
 	mov di, struct_dap.lba
 	times 2 movsd ; Copy it over.
+
+	; TODO: Detect out-of-bounds LBA and panic.
 
 	mov ax, ARG(3)
 	mov [struct_dap.blocks], ax
@@ -81,6 +79,29 @@ FUNCTION disk_read_sectors, dx, si, di
 
 	.error:
 		RETURN ax, dx, si, di
+END
+
+;; Gets drive parameters.
+;; (disk_id, buf_ptr, buf_len).
+FUNCTION disk_get_params, dx, si
+	VARS
+		.s_param_error: db "error: Could not get drive parameters: AX=0x%x", CRLF, 0
+	ENDVARS
+
+	mov si, ARG(2)
+	mov ax, ARG(3)
+	mov [si], ax
+
+	mov ah, 0x48
+	mov dx, ARG(1)
+	int 0x13
+	jc .error
+
+	RETURN 0, dx, si
+
+	.error:
+		INVOKE printf, .s_param_error, ax
+		RETURN 1, dx, si
 END
 
 %endif ; _IO_DISK_ASM

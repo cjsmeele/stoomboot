@@ -121,7 +121,7 @@
 %endmacro
 
 ; }}}
-; Constant values and memory addresses {{{
+; Constant values {{{
 
 %define CRLF 0x0d, 0x0a
 
