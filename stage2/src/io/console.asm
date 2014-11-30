@@ -169,7 +169,12 @@ END
 ; }}}
 
 ;; A very basic printf implementation.
+;; Parameters are passed using the stack and are at least 16-bit in size.
 FUNCTION printf, bx, si, di
+	VARS
+		.u16_flags:  dw 0
+		.u16_length: dw 0
+	ENDVARS
 
 	xor bx, bx ; state: 0 = default, 1 = got % char.
 
@@ -185,6 +190,8 @@ FUNCTION printf, bx, si, di
 
 	or bx, bx
 	jnz .parse_format
+	mov word [.u16_flags], 0
+	mov word [.u16_length], 2
 
 	cmp al, '%'
 	jne .echo
@@ -192,13 +199,24 @@ FUNCTION printf, bx, si, di
 	.format_next:
 		inc bx ; Now awaiting format options.
 		jmp .loop
+
 	.echo:
 		mov ah, 0x0e
 		int 0x10
 		jmp .loop
-	.parse_format:
-		dec bx
 
+	.parse_format:
+		; Check for flags.
+		cmp al, '#'
+		je .flag_alt
+
+		; Check for length modifiers.
+		cmp al, 'h'
+		je .length_8
+		cmp al, 'l'
+		je .length_32
+
+		; Check for conversion specifiers.
 		cmp al, 'd'
 		je .signed
 		cmp al, 'u'
@@ -207,30 +225,79 @@ FUNCTION printf, bx, si, di
 		je .hex
 		cmp al, 's'
 		je .string
-		jmp .echo
+		cmp al, 'c'
+		je .char
+		jmp .format_done ; Invalid format string, back to echo-mode.
+
+		.f_loadnum: ; Loads the next parameter in eax, uses length variable.
+			cmp word [.u16_length], 1
+			je .num_8
+			cmp word [.u16_length], 2
+			je .num_16
+			.num_32
+				mov eax, [ss:di] ; Load parameter value.
+				add di, 4 ; Increment to next parameter address.
+				ret
+			.num_16
+				mov ax, [ss:di] ; Load parameter value.
+				add di, 2
+				ret
+			.num_8
+				mov ax, [ss:di]
+				add di, 2
+				xor ah, ah
+				ret
+			ret
+
+		.flag_alt:
+			or word [.u16_flags], 0x01
+			jmp .loop
+
+		; TODO: Use length variable when printing.
+		.length_8:
+			mov word [.u16_length], 1
+			jmp .loop
+		.length_32:
+			mov word [.u16_length], 4
+			jmp .loop
 
 		.unsigned:
-			mov ax, [ss:di] ; Load parameter value (16-bit unsigned number).
-			add di, 2       ; Increment to next parameter address.
+			call .f_loadnum
 			INVOKE putunum, ax
-			jmp .loop
+			jmp .format_done
 		.signed:
 			mov ax, [ss:di] ; Load parameter value (16-bit signed number).
 			add di, 2
 			INVOKE putnum, ax
-			jmp .loop
+			jmp .format_done
 		.hex:
+			mov ax, [.u16_flags]
+			and ax, 0x01
+			jz .hex_put
+			.hex_alt:
+				mov ax, 0x0e00 | '0'
+				int 0x10
+				mov ax, 0x0e00 | 'x'
+				int 0x10
+			.hex_put:
 			mov ax, [ss:di] ; Load parameter value (16-bit unsigned number).
 			add di, 2
 			INVOKE putword, ax
-			jmp .loop
+			jmp .format_done
 		.string:
 			mov ax, [ss:di] ; Load parameter value (string address).
 			add di, 2
 			INVOKE puts, ax
+			jmp .format_done
+		.char:
+			mov ax, [ss:di] ; Load parameter value (string address).
+			add di, 2
+			mov ah, 0x0e
+			int 0x10
+			;jmp .format_done ; Fall through.
+		.format_done:
+			dec bx
 			jmp .loop
-
-	jmp .loop
 .done:
 	RETURN_VOID bx, si, di
 END
