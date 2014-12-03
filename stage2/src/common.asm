@@ -23,10 +23,12 @@
 
 ; Calling conventions {{{
 
-;; Access function arguments on the stack (ARG(1) is the first argument).
+;; Access 16-bit function arguments on the stack (ARG(1) is the first argument).
+;; (arg_number)
 %define ARG(i) [bp + (i+1)*2]
 
 ;; Enter a subroutine. Push register arguments on the stack.
+;; (func_name, clobbered_reg...)
 %macro FUNCTION 1-*
 	%push   function
 	%define %$function_name %1
@@ -60,6 +62,7 @@
 %endmacro
 
 ;; Return from a subroutine. Pop register arguments from the stack.
+;; (clobbered_reg...)
 %macro RETURN_VOID 0-*
 	%if %0 > 0
 		%rotate -1
@@ -76,6 +79,7 @@
 %endmacro
 
 ;; Return from a subroutine with a value. Pop register arguments from the stack.
+;; (return_value, clobbered_reg...)
 %macro RETURN 1-*
 	mov ax, %1
 
@@ -101,12 +105,14 @@
 	%pop
 %endmacro
 
-;; Invoke a subroutine with zero or more arguments.
+;; Invoke a subroutine with zero or more 16-bit arguments.
+;; (func_name, ...)
 %macro INVOKE 1-*
 	%push invoke
 
 	%define %$to_invoke %1
 
+	; Push arguments from last to first.
 	%rotate -1
 	%rep %0-1
 		push %1
@@ -114,8 +120,33 @@
 	%endrep
 
 	call func_%$to_invoke
-	%undef %$to_invoke
 	add sp, (%0-1) * 2
+
+	%undef %$to_invoke
+
+	%pop
+%endmacro
+
+;; Invoke a subroutine with zero or more arguments,
+;; with the first parameter specifying how many of them are dwords.
+;; (dword_count, func_name, ...)
+%macro INVOKEW 2-*
+	%push invoke
+
+	%define %$wide_args %1
+	%define %$to_invoke %2
+
+	%rotate -1
+	%rep %0-2
+		push %1
+		%rotate -1
+	%endrep
+
+	call func_%$to_invoke
+	add sp, (%0-2) * 2 + 2*%$wide_args
+
+	%undef %$wide_args
+	%undef %$to_invoke
 
 	%pop
 %endmacro

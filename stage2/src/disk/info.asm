@@ -208,8 +208,8 @@ END
 ;; (disk_number)
 FUNCTION disk_explore, cx, dx, si, di
 	VARS
-		.s_disk_explore: db "Exploring disk %xh (disk_info at 0x%x)", CRLF, 0
-		.s_sector_count: db "- disk has 0x%x%x 512-byte sectors", CRLF, 0
+		.s_disk_explore: db "Exploring disk %hxh (disk_info at %#x)", CRLF, 0
+		.s_sector_count: db "- disk has %#lx 512-byte sectors", CRLF, 0
 		.s_disk_mbr_read_error: db \
 			"warning: A disk read error occurred while trying to read the MBR of disk %xh", CRLF, 0
 
@@ -217,7 +217,7 @@ FUNCTION disk_explore, cx, dx, si, di
 		.u8_disk_number: db 0
 
 		.s_disk_info:      db "- found %u partition(s):", CRLF, 0
-		.s_partition_info: db "  - %x: active: %x, type: %x, start: 0x%x%x size: 0x%x%x", CRLF, 0
+		.s_partition_info: db "  - %hxh: active: %hxh, type: %hxh, start: %#lx size: %#lx", CRLF, 0
 	ENDVARS
 
 	mov ax, ARG(1)
@@ -242,9 +242,8 @@ FUNCTION disk_explore, cx, dx, si, di
 
 	INVOKE printf, .s_disk_explore, ax, di
 
-	mov ax, [di + t_disk_info.sector_count]
-	mov dx, [di + t_disk_info.sector_count + 2]
-	INVOKE printf, .s_sector_count, dx, ax
+	mov eax, [di + t_disk_info.sector_count]
+	INVOKEW 1, printf, .s_sector_count, eax
 
 	xor ax, ax
 	mov al, [di + t_disk_info.disk_id]
@@ -272,14 +271,12 @@ FUNCTION disk_explore, cx, dx, si, di
 	cmp cl, [di + t_disk_info.partition_count]
 	jge .endpartloop
 
-	mov dx, [si + t_part_info.sector_count]
-	push dx
-	mov dx, [si + t_part_info.sector_count + 2]
-	push dx
-	mov dx, [si + t_part_info.lba_start]
-	push dx
-	mov dx, [si + t_part_info.lba_start + 2]
-	push dx
+	; Arguments to printf.
+	mov edx, [si + t_part_info.sector_count]
+	push edx
+	mov edx, [si + t_part_info.lba_start]
+	push edx
+
 	mov dl, [si + t_part_info.system_id]
 	xor dh, dh
 	mov al, [si + t_part_info.active]

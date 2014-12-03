@@ -167,6 +167,63 @@ FUNCTION putnum, bx, dx, di
 END
 
 ; }}}
+; Printf {{{
+
+; The printf flag bits are as follows:
+;
+; 0000.0000.0000.0001
+;             || |||`Alternative format (i.e. '0x' prefix for hex)
+;             || ||`Uppercase hexadecimal
+;             || |`Left-adjusted (pad right side with blanks)
+;             || `Pad with zeroes instead of blanks
+;             |`Print a space before positive numbers and empty strings
+;             `Group digits (e.g. 1'234'567 or 0x12ab.34cd)
+;
+; A '1' indicates that the feature has been implemented.
+
+;; Print a number in hexadecimal.
+;; Must be called in printf context.
+printf_hex:
+	push cx
+	push dx
+
+	test word [func_printf.u16_flags], 0x01
+	jz .put
+	.alt:
+		mov ax, 0x0e00 | '0'
+		int 0x10
+		mov ax, 0x0e00 | 'x'
+		int 0x10
+
+.put:
+	call func_printf.f_loadnum
+	mov cx, [func_printf.u16_length]
+
+	; Rotate the number to the right to move the highest byte to AL.
+.rotloop:
+	dec cx
+	jz .endrotloop
+	ror eax, 8
+	jmp .rotloop
+.endrotloop:
+
+	mov cx, [func_printf.u16_length]
+.byteloop:
+	; putbyte overwrites AX.
+	push ax
+	INVOKE putbyte, ax
+	pop ax
+	rol eax, 8 ; Load the next byte in AL.
+	loop .byteloop
+
+	pop dx
+	pop cx
+	ret
+
+printf_dec:
+	; TODO
+	ret
+
 
 ;; A very basic printf implementation.
 ;; Parameters are passed using the stack and are at least 16-bit in size.
@@ -229,7 +286,8 @@ FUNCTION printf, bx, si, di
 		je .char
 		jmp .format_done ; Invalid format string, back to echo-mode.
 
-		.f_loadnum: ; Loads the next parameter in eax, uses length variable.
+		;; Loads the next parameter in eax, uses length variable.
+		.f_loadnum:
 			cmp word [.u16_length], 1
 			je .num_8
 			cmp word [.u16_length], 2
@@ -244,10 +302,9 @@ FUNCTION printf, bx, si, di
 				ret
 			.num_8
 				mov ax, [ss:di]
-				add di, 2
+				add di, 2 ; Parameters are at least 16 bits wide.
 				xor ah, ah
 				ret
-			ret
 
 		.flag_alt:
 			or word [.u16_flags], 0x01
@@ -271,18 +328,7 @@ FUNCTION printf, bx, si, di
 			INVOKE putnum, ax
 			jmp .format_done
 		.hex:
-			mov ax, [.u16_flags]
-			and ax, 0x01
-			jz .hex_put
-			.hex_alt:
-				mov ax, 0x0e00 | '0'
-				int 0x10
-				mov ax, 0x0e00 | 'x'
-				int 0x10
-			.hex_put:
-			mov ax, [ss:di] ; Load parameter value (16-bit unsigned number).
-			add di, 2
-			INVOKE putword, ax
+			call printf_hex
 			jmp .format_done
 		.string:
 			mov ax, [ss:di] ; Load parameter value (string address).
@@ -301,6 +347,8 @@ FUNCTION printf, bx, si, di
 .done:
 	RETURN_VOID bx, si, di
 END
+
+; }}}
 
 ;; Change the cursor shape.
 FUNCTION set_cursor_shape, cx

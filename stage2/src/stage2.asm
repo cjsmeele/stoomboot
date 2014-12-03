@@ -45,10 +45,17 @@ start:
 FUNCTION main
 	VARS
 		.s_loading: db "stage2", 0
+		.s_foobar: db "foobar: %#lx %#hx", CRLF, 0
+		.s_foo: db "foo: %#hx, %#lx, %lx, %#x, %s, %x.", CRLF, 0
+		.s_bar: db "bar", 0
 	ENDVARS
 
 	INVOKE putln, .s_loading
 	call putbr
+
+	INVOKEW 1, printf, .s_foobar, dword 0x2468ace5, 0xea
+	mov eax, 0xfeedbeef
+	INVOKEW 2, printf, .s_foo, 0x00ea, dword 0x2468ace5, eax, 0xfedc, .s_bar, 0xaa55
 
 	INVOKE disk_detect_all
 
