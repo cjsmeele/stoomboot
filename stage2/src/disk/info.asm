@@ -209,7 +209,7 @@ END
 FUNCTION disk_explore, cx, dx, si, di
 	VARS
 		.s_disk_explore: db "Exploring disk %hxh (disk_info at %#x)", CRLF, 0
-		.s_sector_count: db "- disk has %#lx 512-byte sectors", CRLF, 0
+		.s_sector_count: db "- disk has %lu 512-byte sectors", CRLF, 0
 		.s_disk_mbr_read_error: db \
 			"warning: A disk read error occurred while trying to read the MBR of disk %xh", CRLF, 0
 
@@ -217,7 +217,7 @@ FUNCTION disk_explore, cx, dx, si, di
 		.u8_disk_number: db 0
 
 		.s_disk_info:      db "- found %u partition(s):", CRLF, 0
-		.s_partition_info: db "  - %hxh: active: %hxh, type: %hxh, start: %#lx size: %#lx", CRLF, 0
+		.s_partition_info: db "  - %hu: active: %hxh, type: %hxh, start: %lu size: %lu", CRLF, 0
 	ENDVARS
 
 	mov ax, ARG(1)
