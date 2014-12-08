@@ -46,14 +46,11 @@
 
 ;; Declare function-local variables.
 %macro VARS 0
-	%ifnctx function
-		%error Variable declaration outside of function context.
-	%endif
-	jmp func_ %+ %$function_name %+ .function_body
+	[section .data]
 %endmacro
 
 %macro ENDVARS 0
-	.function_body:
+	__SECT__
 %endmacro
 
 ;; Do NOT return from a subroutine. Jumps to hang.
@@ -100,9 +97,10 @@
 	ret
 %endmacro
 
-;; Pop something from the context stack.
+;; Pop something from the context stack. Used in function context.
 %macro END 0
 	%pop
+	INVOKE panic ; Catch missing RETURNs.
 %endmacro
 
 ;; Invoke a subroutine with zero or more 16-bit arguments.

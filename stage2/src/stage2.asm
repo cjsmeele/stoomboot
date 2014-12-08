@@ -25,6 +25,8 @@
 
 [org MEM_STAGE2]
 
+SECTION .text
+
 db 0xfa, 0xf4     ; cli, hlt
 db "STAGE2", 0, 0 ; magic!
 
@@ -32,6 +34,7 @@ jmp start
 
 %include "common.asm"
 %include "panic.asm"
+%include "string.asm"
 %include "bda.asm"
 %include "io/console.asm"
 %include "disk/info.asm"
@@ -58,7 +61,7 @@ FUNCTION main
 	;   x   1.  Scan partition tables
 	;       2.  Find FAT32 boot partition
 	;       3.  Parse FAT and find boot config file
-	;       4.  Parse config
+	;   .   4.  Parse config
 	;       5.  Show an interactive boot menu (with cmdline?)
 	;       6.  Find a kernel image
 	;       7.  Parse kernel ELF

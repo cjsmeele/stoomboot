@@ -21,18 +21,20 @@
 ; OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 ; THE SOFTWARE.
 
-;; Disk Address Packet structure.
-struct_dap:
-	.length:    db 0x10 ; DAP length. 0x10 or 0x18, if the 64-bit flat destination is used.
-	.reserved1: db 0
-	.blocks:    db 0 ; Amount of blocks to read / write, max. 127.
-	.reserved2: db 0
+VARS
+	;; Disk Address Packet structure.
+	struct_dap:
+		.length:    db 0x10 ; DAP length. 0x10 or 0x18, if the 64-bit flat destination is used.
+		.reserved1: db 0
+		.blocks:    db 0 ; Amount of blocks to read / write, max. 127.
+		.reserved2: db 0
 
-	.dest_offset:  dw 0 ; Destination address. Set to ffff:ffff if the 64-bit flat address is to be used.
-	.dest_segment: dw 0
+		.dest_offset:  dw 0 ; Destination address. Set to ffff:ffff if the 64-bit flat address is to be used.
+		.dest_segment: dw 0
 
-	.lba:       dq 0
-	.dest_flat: dq 0 ; Optional.
+		.lba:       dq 0
+		.dest_flat: dq 0 ; Optional.
+ENDVARS
 
 ;; Reads one or more disk sectors.
 ;; (disk_id, lba_ptr, blocks, [dest_flat_ptr | 0, dest_segment, dest_offset])
