@@ -26,6 +26,7 @@ endif
 # Directories {{{
 
 SRCDIR := src
+OBJDIR := obj
 BINDIR := bin
 
 # }}}
@@ -33,25 +34,52 @@ BINDIR := bin
 
 BINFILE := $(BINDIR)/$(PACKAGE_NAME).bin
 
-OUTFILES := $(BINFILE)
+OUTFILES = $(OBJFILES) $(BINFILE)
 
 # }}}
 # Source and intermediate files {{{
 
-STAGE2   := $(SRCDIR)/stage2.asm
-ASMFILES := $(shell find -L src -iname '*.asm')
+ASMFILES := $(shell find $(SRCDIR) -name '*.asm')
+CFILES   := $(shell find $(SRCDIR) -name '*.c')
+DEPFILES := $(CFILES:$(SRCDIR)/%.c=$(DEPDIR)/%.d)
+OBJNAMES := $(ASMFILES:$(SRCDIR)/%.asm=%) $(CFILES:$(SRCDIR)/%.c=%)
+OBJFILES := $(OBJNAMES:%=$(OBJDIR)/%.o)
 
-INFILES := $(ASMFILES)
+LDFILE := $(PACKAGE_NAME).ld
+
+INFILES := $(ASMFILES) $(CFILES)
 
 # }}}
 # Toolkit {{{
 
 AS := yasm
+CC := clang
+LD := i686-elf-ld
 
 # }}}
 # Toolkit flags {{{
 
-ASFLAGS :=
+CWARNINGS := \
+	-Wall \
+	-Wextra \
+	-Wpointer-arith \
+	-Wwrite-strings \
+	-Wmissing-declarations \
+	-Wno-long-long \
+	-Wuninitialized \
+	-Wno-unused-parameter
+
+ASFLAGS := -f elf32
+CFLAGS  := \
+	-m16 \
+	-nostdlib \
+	-ffreestanding \
+	-fno-stack-protector \
+	-Wfatal-errors \
+	-std=c11 \
+	$(CWARNINGS)
+
+LDFLAGS :=
 
 # }}}
 
@@ -65,10 +93,24 @@ all: bin
 
 bin: $(BINFILE)
 
-$(BINFILE): $(ASMFILES)
-	$(Q)mkdir -p $(@D)
-	$(E) "  AS       $(STAGE2)"
-	$(Q)$(AS) $(ASFLAGS) -o $@ $(STAGE2)
+$(BINFILE): $(OBJFILES) $(LDFILE)
+	$(E) "  LD   $@"
+	$(Q)$(LD) $(LDFLAGS) -T$(LDFILE) -o $@ $(OBJFILES)
+
+$(DEPDIR)/%.d: $(SRCDIR)/%.c
+	$(E) "  DEP  $@"
+	$(Q)mkdir -p `dirname $@`
+	$(Q)$(CC) $(CFLAGS) -MM -MT $(<:$(SRCDIR)/%.c=$(OBJDIR)/%.o) -o $@ $<
+
+obj/%.o: src/%.asm
+	$(Q)mkdir -p `dirname $@`
+	$(E) "  AS   $<"
+	$(Q)$(AS) $(ASFLAGS) -o $@ $<
+
+obj/%.o: src/%.c
+	$(Q)mkdir -p `dirname $@`
+	$(E) "  CC   $<"
+	$(Q)$(CC) -o $@ -c $< $(CFLAGS)
 
 clean:
 	$(E) "  CLEAN    $(OUTFILES)"
