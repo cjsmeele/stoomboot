@@ -77,6 +77,7 @@ CFLAGS  := \
 	-fno-stack-protector \
 	-Wfatal-errors \
 	-std=c11 \
+	-I$(SRCDIR) \
 	$(CWARNINGS)
 
 LDFLAGS :=
@@ -102,12 +103,12 @@ $(DEPDIR)/%.d: $(SRCDIR)/%.c
 	$(Q)mkdir -p `dirname $@`
 	$(Q)$(CC) $(CFLAGS) -MM -MT $(<:$(SRCDIR)/%.c=$(OBJDIR)/%.o) -o $@ $<
 
-obj/%.o: src/%.asm
+$(OBJDIR)/%.o: $(SRCDIR)/%.asm
 	$(Q)mkdir -p `dirname $@`
 	$(E) "  AS   $<"
 	$(Q)$(AS) $(ASFLAGS) -o $@ $<
 
-obj/%.o: src/%.c
+$(OBJDIR)/%.o: $(SRCDIR)/%.c
 	$(Q)mkdir -p `dirname $@`
 	$(E) "  CC   $<"
 	$(Q)$(CC) -o $@ -c $< $(CFLAGS)
