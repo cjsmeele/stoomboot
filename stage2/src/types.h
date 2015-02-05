@@ -9,6 +9,12 @@
 
 #include "common.h"
 
+#ifndef bool
+typedef unsigned char bool;
+#define true  (1)
+#define false (0)
+#endif
+
 typedef char  int8_t;
 typedef short int16_t;
 typedef int   int32_t;
