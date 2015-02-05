@@ -9,6 +9,6 @@
 
 #include "common.h"
 
-void stage2Main(uint16_t bootDiskNo) __attribute__((noreturn));
+void stage2Main(uint32_t bootDiskNo) __attribute__((noreturn));
 
 #endif /* _STAGE2_H */

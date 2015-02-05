@@ -10,7 +10,7 @@
 /**
  * @brief Stage 2 entry point
  */
-void stage2Main(uint16_t bootDiskNo) {
+void stage2Main(uint32_t bootDiskNo) {
 	puts("\r\nHello, world!\r\n");
 	puts("Booting from disk: ");
 	putnum(bootDiskNo);
