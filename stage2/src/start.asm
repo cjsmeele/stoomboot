@@ -18,15 +18,36 @@ SECTION .text
 db 0xfa, 0xf4     ; cli, hlt
 db "STAGE2", 0, 0 ; magic!
 
+jmp start
+
+u16_boot_device: dw 0
+
 start:
-	push ax ; boot disk number (usually 80h).
-	mov si, s_loading
-	call puts
-	pop ax
+	mov [u16_boot_device], ax
+
+	cli
+	; Set up the stack, again.
+	; Both clang and GCC seem to have problems when the stack is in a different
+	; segment than the rest of the program.
+	xor eax, eax
+	mov ss, eax
+	mov esp, 0x7dff ; Right below the start of stage2, overwriting stage1.
+	; Reset segment registers, just in case.
+	xor eax, eax
+	mov ds, eax
+	mov es, eax
+	mov fs, eax
+	mov gs, eax
+	sti
+
+	mov esi, s_loading
+	call long puts
+
+	xor eax, eax
+	mov ax, [u16_boot_device]
 
 	mov ebp, esp
-
-	push ax
+	push eax
 	call long stage2Main ; Call into C.
 
 	cli

@@ -71,6 +71,7 @@ CWARNINGS := \
 
 ASFLAGS := -f elf32
 CFLAGS  := \
+	-O0 \
 	-m16 \
 	-nostdlib \
 	-ffreestanding \
