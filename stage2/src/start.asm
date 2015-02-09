@@ -1,7 +1,8 @@
-; @file
-; @brief     Loads the C portion of stage2
-; @author    Chris Smeele
-; @copyright Copyright (c) 2015, Chris Smeele
+;; \file
+;; \brief     Loads the C portion of stage2
+;; \author    Chris Smeele
+;; \copyright Copyright (c) 2015, Chris Smeele. All rights reserved.
+;; \license   MIT. See LICENSE for the full license text.
 
 [bits 16]
 

@@ -1,8 +1,9 @@
 /**
- * @file
- * @brief
- * @author    Chris Smeele
- * @copyright Copyright (c) 2015, Chris Smeele
+ * \file
+ * \brief     I/O port functions.
+ * \author    Chris Smeele
+ * \copyright Copyright (c) 2015, Chris Smeele. All rights reserved.
+ * \license   MIT. See LICENSE for the full license text.
  */
 #include "ioport.h"
 
