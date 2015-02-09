@@ -1,6 +1,7 @@
 # Output directories
 */obj/*
 */bin/*
+*/doc/doxygen/*
 /kernel/dep/*
 /img/*
 
