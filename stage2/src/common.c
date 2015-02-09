@@ -37,9 +37,16 @@ void *memset(void *mem, uint8_t c, size_t length) {
 }
 
 void *memcpy(void *dest, const void *source, size_t length) {
-	for (size_t i=0; i<length; i++) {
-		((uint8_t*)dest)[i] = ((uint8_t*)source)[i];
-	}
+	if (length)
+		asm volatile (
+			"m2loop: movsb\n"
+			"loop m2loop\n"
+			:
+			: "c" (length),
+			  "D" (dest),
+			  "S" (source)
+			: "memory"
+		);
 
 	return dest;
 }
