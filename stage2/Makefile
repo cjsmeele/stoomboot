@@ -41,13 +41,14 @@ OUTFILES = $(OBJFILES) $(BINFILE)
 
 ASMFILES := $(shell find $(SRCDIR) -name '*.asm')
 CFILES   := $(shell find $(SRCDIR) -name '*.c')
+HFILES   := $(shell find $(SRCDIR) -name '*.h')
 DEPFILES := $(CFILES:$(SRCDIR)/%.c=$(DEPDIR)/%.d)
 OBJNAMES := $(ASMFILES:$(SRCDIR)/%.asm=%) $(CFILES:$(SRCDIR)/%.c=%)
 OBJFILES := $(OBJNAMES:%=$(OBJDIR)/%.o)
 
 LDFILE := $(PACKAGE_NAME).ld
 
-INFILES := $(ASMFILES) $(CFILES)
+INFILES := $(ASMFILES) $(CFILES) $(HFILES)
 
 # }}}
 # Toolkit {{{
@@ -90,7 +91,7 @@ LDFLAGS    = $(addprefix -L, $(LDLIBPATH))
 
 # Make targets {{{
 
-.PHONY: all clean bin
+.PHONY: all clean bin doc
 
 all: bin
 
@@ -114,6 +115,9 @@ $(OBJDIR)/%.o: $(SRCDIR)/%.c
 	$(Q)mkdir -p `dirname $@`
 	$(E) "  CC   $<"
 	$(Q)$(CC) -o $@ -c $< $(CFLAGS)
+
+doc: $(INFILES) doxygen.conf
+	$(Q)doxygen doxygen.conf
 
 clean:
 	$(E) "  CLEAN    $(OUTFILES)"
