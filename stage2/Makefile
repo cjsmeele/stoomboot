@@ -67,7 +67,7 @@ CWARNINGS := \
 	-Wmissing-declarations \
 	-Wno-long-long \
 	-Wuninitialized \
-	-Wno-unused-parameter
+	-Wno-format-invalid-specifier
 
 ASFLAGS := -f elf32
 CFLAGS  := \
@@ -81,7 +81,8 @@ CFLAGS  := \
 	-I$(SRCDIR) \
 	$(CWARNINGS)
 
-LDFLAGS :=
+LDLIBPATH :=
+LDFLAGS    = $(addprefix -L, $(LDLIBPATH))
 
 # }}}
 

@@ -1,12 +1,23 @@
 /**
- * @file
- * @brief
- * @author    Chris Smeele
- * @copyright Copyright (c) 2015, Chris Smeele
+ * \file
+ * \brief     Console I/O functions.
+ * \author    Chris Smeele
+ * \copyright Copyright (c) 2015, Chris Smeele. All rights reserved.
+ * \license   MIT. See LICENSE for the full license text.
  */
 #include "console.h"
+#include <stdarg.h>
 
 void putch(char ch) {
+	if (ch == '\n') {
+		asm volatile (
+			"int $0x10"
+			:
+			: "a" (0x0e << 8 | '\r'),
+			  "b" (0x07)
+			: "memory", "cc"
+		);
+	}
 	asm volatile (
 		"int $0x10"
 		:
@@ -21,25 +32,290 @@ void puts(const char *str) {
 		putch(*str++);
 }
 
-void putunum(uint32_t num) {
-	static char buffer[11] = { };
-	int i = 10;
+#define CONSOLE_PRINTF_RESET_FORMAT() do { \
+		inFormat = false; \
+		memset(&flags, 0, sizeof(flags)); \
+		width    = 0; \
+		widthBufferIndex = 0; \
+		lengthModifier   = 0; \
+	} while (0)
+
+typedef struct {
+	bool alternative     : 1;
+	bool uppercaseHex    : 1;
+	bool leftAdjusted    : 1;
+	bool padWithZeroes   : 1;
+	bool groupDigits     : 1;
+	bool alwaysPrintSign : 1;
+	bool padSign         : 1;
+} PrintfFlags;
+
+static size_t printfDecimal(uint32_t num, bool sign, PrintfFlags *flags, size_t width) {
+	size_t length = 0;
+
+	if (sign) {
+		if ((int32_t)num < 0) {
+			putch('-');
+			length++;
+		} else if (flags->alwaysPrintSign) {
+			putch('+');
+			length++;
+		} else if (flags->padSign) {
+			putch(' ');
+			length++;
+		}
+
+		num = abs((int32_t)num);
+	}
+
+	static char buffer[14] = { };
+	size_t i = 13;
+
 	do {
+		if (flags->groupDigits && (i == 10 || i == 6 || i == 2))
+			buffer[--i] = CONSOLE_PRINTF_DECIMAL_DIGIT_GROUP_CHAR;
+
 		buffer[--i] = (num % 10) + '0';
 		num /= 10;
 	} while (num);
 
-	puts(&buffer[i]);
+	length += 13 - i;
+
+	if (width && width > length) {
+		size_t j = 0;
+		if (flags->leftAdjusted) {
+			puts(&buffer[i]);
+
+			for (; j<(width - length); j++)
+				putch(' ');
+
+		} else {
+			for (; j<(width - length); j++)
+				putch(flags->padWithZeroes ? '0' : ' ');
+
+			puts(&buffer[i]);
+		}
+
+		length += j;
+	} else {
+		puts(&buffer[i]);
+	}
+
+	return length;
 }
 
-void putnum(int32_t num) {
-	if (num < 0) {
-		putch('-');
-		putunum(-num);
+static size_t printfHex(uint32_t num, PrintfFlags *flags, size_t width) {
+	size_t length = 0;
+
+	static char buffer[20] = { };
+	size_t i = 19;
+
+	bool groupCharAdded = false;
+
+	do {
+		if (flags->groupDigits && i == 15) {
+			buffer[--i] = CONSOLE_PRINTF_HEX_DIGIT_GROUP_CHAR;
+			groupCharAdded = true;
+		}
+
+		uint8_t n = num & 0xf;
+		buffer[--i] = n > 9 ? n - 10 + 'a' : n + '0';
+		num >>= 4;
+	} while (num);
+
+	length += 19 - i - (groupCharAdded ? 1 : 0);
+
+	if (flags->alternative)
+		puts("0x");
+
+	if (width && width > length) {
+		size_t j = 0;
+		if (flags->leftAdjusted) {
+			puts(&buffer[i]);
+
+			for (; j<(width - length); j++)
+				putch(' ');
+
+		} else {
+			for (; j<(width - length); j++) {
+				putch(flags->padWithZeroes ? '0' : ' ');
+				if (flags->padWithZeroes && flags->groupDigits && width == 8 && j == 3) {
+					putch(CONSOLE_PRINTF_HEX_DIGIT_GROUP_CHAR);
+					groupCharAdded = true;
+				}
+			}
+
+			if (groupCharAdded)
+				length++;
+
+			puts(&buffer[i]);
+		}
+
+		length += j;
+
 	} else {
-		putunum(num);
+		puts(&buffer[i]);
 	}
+
+	if (flags->alternative)
+		length += 2;
+
+	return length;
 }
+
+int printf(const char *format, ...) {
+
+	va_list vaList;
+	va_start(vaList, format);
+	// Format state {
+
+	PrintfFlags flags = { };
+
+	bool inFormat = false;
+	size_t width  = 0; ///< Minimum formatted text length.
+	static char widthBuffer[9] = { };
+	size_t widthBufferIndex    = 0;
+	uint8_t lengthModifier     = 0; ///< Amount of bytes as the size of the argument.
+
+	// }
+
+	int length = 0;
+
+	char c;
+	int i = 0;
+	while ((c = format[i++])) {
+		if (inFormat) {
+			if (c == '%') {
+				// Note: '%' can be used anywhere in a '%' format substring to cancel formatting.
+				putch(c);
+				CONSOLE_PRINTF_RESET_FORMAT();
+
+			} else if ((widthBufferIndex && c == '0') || (c >= '1' && c <= '9')) {
+				if (widthBufferIndex >= sizeof(widthBufferIndex)) {
+					// Ignore silently.
+				} else {
+					widthBuffer[widthBufferIndex++] = c;
+				}
+			} else {
+				if (widthBufferIndex) {
+					widthBuffer[widthBufferIndex] = 0;
+					widthBufferIndex = 0;
+					width = atoi(widthBuffer);
+				}
+				// Flags {
+				if (c == '-') {
+					flags.leftAdjusted  = true;
+					flags.padWithZeroes = false;
+				} else if (c == '0') {
+					flags.padWithZeroes = true;
+					flags.leftAdjusted  = false;
+				} else if (c == '#') {
+					flags.alternative = true;
+				} else if (c == '+') {
+					flags.alwaysPrintSign = true;
+					flags.padSign         = false;
+				} else if (c == ' ') {
+					flags.alwaysPrintSign = false;
+					flags.padSign         = true;
+				} else if (c == '\'') {
+					flags.groupDigits = true;
+				// }
+				// Length modifiers {
+				} else if (c == 'h') {
+					lengthModifier = 2;
+				} else if (c == 'H') {
+					lengthModifier = 1;
+				} else if (c == 'l') {
+					lengthModifier = 8;
+				// }
+				// Conversion specifiers {
+				} else {
+					bool isConversion = false;
+					static const char *conversionChars = "xdcups";
+					for (size_t j=0; j<strlen(conversionChars); j++)
+						if (c == conversionChars[j]) {
+							isConversion = true;
+							break;
+						}
+
+					if (!isConversion) {
+						// Format error.
+						CONSOLE_PRINTF_RESET_FORMAT();
+						continue;
+					}
+
+					if (c == 'd') {
+						int32_t num;
+						if (lengthModifier == 1)
+							num = (int8_t) va_arg(vaList, int);
+						else if (lengthModifier == 2)
+							num = (int16_t)va_arg(vaList, int);
+						else
+							num = (int32_t)va_arg(vaList, int);
+
+						// Unfortunately, we cannot div / mod 64 bit numbers.
+						length += printfDecimal(num, true, &flags, width);
+
+					} else if (c == 'u' || c == 'x') {
+						uint32_t num;
+						if (lengthModifier == 1)
+							num = (uint8_t) va_arg(vaList, unsigned int);
+						else if (lengthModifier == 2)
+							num = (uint16_t)va_arg(vaList, unsigned int);
+						else
+							num = (uint32_t)va_arg(vaList, unsigned int);
+
+						if (c == 'u')
+							length += printfDecimal(num, false, &flags, width);
+						else if (c == 'x')
+							length += printfHex(num, &flags, width);
+
+					} else if (c == 's') {
+						char *str = (char*)va_arg(vaList, char*);
+						size_t slen = strlen(str);
+						if (slen < width) {
+							if (flags.leftAdjusted) {
+								for (size_t j=0; j<(width - slen); j++)
+									putch(' ');
+								puts(str);
+							} else {
+								puts(str);
+								for (size_t j=0; j<(width - slen); j++)
+									putch(' ');
+							}
+							length += width;
+						} else {
+							puts(str);
+							length += slen;
+						}
+					} else if (c == 'c') {
+						char ch = (char)va_arg(vaList, int);
+						putch(ch);
+						length++;
+					}
+
+					CONSOLE_PRINTF_RESET_FORMAT();
+				}
+				// }
+			}
+		} else if (c == '%') {
+			inFormat = true;
+		} else if (c == '\n') {
+			putch('\r');
+			putch('\n');
+			length++;
+		} else {
+			putch(c);
+			length++;
+		}
+	}
+
+	va_end(vaList);
+
+	return length;
+}
+
+#undef CONSOLE_PRINTF_RESET_FORMAT
 
 bool getKey(Key *key, bool wait) {
 	if (!wait) {
@@ -73,8 +349,8 @@ bool getKey(Key *key, bool wait) {
 	return true;
 }
 
-uint16_t getLine(char *line, uint16_t size) {
-	int16_t i = 0;
+uint16_t getLine(char *line, size_t size) {
+	size_t i = 0;
 	Key key;
 	while (i < size - 1) {
 		if (getKey(&key, true)) {
