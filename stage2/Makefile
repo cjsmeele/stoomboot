@@ -1,4 +1,4 @@
-# Copyright (c) 2014, Chris Smeele
+# Copyright (c) 2014, 2015 Chris Smeele
 # All rights reserved.
 
 # Parameters {{{
