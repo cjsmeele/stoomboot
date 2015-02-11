@@ -13,6 +13,8 @@
 #endif
 
 #include "types.h"
+#include "panic.h"
+#include "assert.h"
 
 /**
  * \brief Halt the CPU, wait for the next interrupt.
