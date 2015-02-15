@@ -10,13 +10,15 @@
 
 #include "common.h"
 
+#define NULL (0)
+
 typedef unsigned char bool;
 #define true  (1)
 #define false (0)
 
-// Using a 64-bit size_t would be overkill in real-mode.
+// 64-bit operations are incredibly expensive in real mode, avoid if possible.
 typedef          int ssize_t;
-typedef unsigned int size_t;
+typedef unsigned int  size_t;
 
 typedef char      int8_t;
 typedef short     int16_t;
