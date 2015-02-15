@@ -169,7 +169,8 @@ int printf(const char *format, ...) {
 	va_start(vaList, format);
 	// Format state {
 
-	PrintfFlags flags = { };
+	PrintfFlags flags;
+	memset(&flags, 0, sizeof(flags));
 
 	bool inFormat = false;
 	size_t width  = 0; ///< Minimum formatted text length.

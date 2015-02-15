@@ -7,13 +7,17 @@
  */
 #include "stage2.h"
 #include "console.h"
+#include "disk/disk.h"
 
-/**
- * \brief Stage 2 entry point.
- */
+
 void stage2Main(uint32_t bootDiskNo) {
 	printf("\nHello, world!\n");
 	printf("Booting from disk: %02xh\n", bootDiskNo);
+
+	if (disksDiscover() <= 0) {
+		// We did not detect any usable disks, abort.
+		panic("No usable disk drives detected.");
+	}
 
 	printf("\nHalting.\n");
 	hang();

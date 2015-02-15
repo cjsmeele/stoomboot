@@ -15,8 +15,8 @@
  */
 typedef struct {
 
-	uint8_t _stuff[0x75]; // TODO.
-	uint8_t hdCount; ///< Amount of installed hard disks.
+	uint8_t _stuff[0x75]; ///< @todo Describe BDA fields.
+	uint8_t hdCount;      ///< Amount of installed hard disks.
 
 } __attribute__((packed)) BDA;
 
