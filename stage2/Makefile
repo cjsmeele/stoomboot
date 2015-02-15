@@ -54,7 +54,10 @@ INFILES := $(ASMFILES) $(CFILES) $(HFILES)
 # Toolkit {{{
 
 AS := yasm
-CC := clang
+# Unfortunately, using clang with any -O option breaks stage2. I'm unable to
+# figure out what might be causing the issue, so we're simply going to use GCC
+# here since it works.
+CC := i686-elf-gcc
 LD := i686-elf-ld
 
 # }}}
@@ -67,12 +70,12 @@ CWARNINGS := \
 	-Wwrite-strings \
 	-Wmissing-declarations \
 	-Wno-long-long \
-	-Wuninitialized \
-	-Wno-format-invalid-specifier
+	-Wuninitialized
 
 ASFLAGS := -f elf32
 CFLAGS  := \
-	-O0 \
+	-fdiagnostics-color=auto \
+	-Os \
 	-m16 \
 	-nostdlib \
 	-ffreestanding \
