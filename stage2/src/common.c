@@ -24,8 +24,8 @@ void hang() {
 void *memset(void *mem, uint8_t c, size_t length) {
 	if (length)
 		asm volatile (
-			"mloop: stosb\n"
-			"loop mloop\n"
+			".mloop1: stosb\n"
+			"loop .mloop1\n"
 			:
 			: "a" (c),
 			  "c" (length),
@@ -39,8 +39,8 @@ void *memset(void *mem, uint8_t c, size_t length) {
 void *memcpy(void *dest, const void *source, size_t length) {
 	if (length)
 		asm volatile (
-			"m2loop: movsb\n"
-			"loop m2loop\n"
+			".mloop2: movsb\n"
+			"loop .mloop2\n"
 			:
 			: "c" (length),
 			  "D" (dest),
@@ -49,6 +49,29 @@ void *memcpy(void *dest, const void *source, size_t length) {
 		);
 
 	return dest;
+}
+
+bool memeq(const void *source1, const void *source2, size_t length) {
+	uint8_t equal = 1;
+
+	if (length) {
+		asm volatile (
+			".mloop3: cmpsb\n"
+			"jne .unequal\n"
+			"loop .mloop3\n"
+			"jmp .equal\n"
+			".unequal:\n"
+			"xor %0, %0\n"
+			".equal:\n"
+			: "=r" (equal)
+			: "c" (length),
+			  "D" (source1),
+			  "S" (source2)
+			: "memory", "cc"
+		);
+	}
+
+	return equal;
 }
 
 size_t strlen(const char *str) {

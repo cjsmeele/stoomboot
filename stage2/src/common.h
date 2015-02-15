@@ -12,6 +12,11 @@
 #define asm __asm__
 #endif
 
+#define MIN(a, b) (a < b ? a : b)
+#define MAX(a, b) (a > b ? a : b)
+#define CLAMP(n, min, max) (MIN(MAX(n, min), max))
+#define ELEMS(a) (sizeof(a) / sizeof(a[0]))
+
 #include "types.h"
 #include "panic.h"
 #include "assert.h"
@@ -22,7 +27,7 @@
 void halt();
 
 /**
- * \brief Hang forever
+ * \brief Hang forever.
  */
 void hang() __attribute__((noreturn));
 
@@ -47,6 +52,17 @@ void *memset(void *mem, uint8_t c, size_t length);
  * \return a pointer to dest
  */
 void *memcpy(void *dest, const void *source, size_t length);
+
+/**
+ * \brief Check if the contents of two memory regions are equal.
+ *
+ * \param source1
+ * \param source2
+ * \param length
+ *
+ * \return whether the memory regions are equal
+ */
+bool memeq(const void *source1, const void *source2, size_t length);
 
 /**
  * \brief Returns the length of the input string.
