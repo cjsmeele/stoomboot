@@ -56,7 +56,7 @@ int dosMbrScan(Disk *disk, uint64_t lbaStart, uint64_t blockCount) {
 		const DosMbr *mbr = (DosMbr*)mbrBuffer;
 		const MbrPartitionTable *table = &mbr->partitionTable;
 
-		for (int i=0; i<4; i++) {
+		for (int i=0; i<4 && disk->partitionCount < DISK_MAX_PARTITIONS_PER_DISK; i++) {
 			const MbrPartitionTableEntry *pte = &table->entries[i];
 
 			if (pte->lbaStart && pte->blockCount) {
