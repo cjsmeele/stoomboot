@@ -60,13 +60,13 @@ Disk *getBootDisk();
  * \brief Read sectors from a hard drive.
  *
  * \param disk a pointer to a disk structure
- * \param lba logical block address
  * \param dest destination address
+ * \param lba logical block address
  * \param blockCount amount of blocks to read
  *
  * \return zero on success, non-zero on error
  */
-int diskRead(Disk *disk, uint64_t lba, uint64_t dest, uint64_t blockCount);
+int diskRead(Disk *disk, uint64_t dest, uint64_t lba, uint64_t blockCount);
 
 /**
  * \brief Detects disk drives, parses partition tables, fills Disk structs.

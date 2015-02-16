@@ -8,5 +8,8 @@
 #include "partition-table.h"
 
 bool verifyPartitionLayout(Disk *disk) {
+
+	/// @todo Unimplemented.
+
 	return true;
 }

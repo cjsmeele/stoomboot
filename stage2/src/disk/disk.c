@@ -63,7 +63,7 @@ typedef struct {
 } __attribute__((packed)) DiskAddressPacket;
 
 
-int diskRead(Disk *disk, uint64_t lba, uint64_t dest, uint64_t blockCount) {
+int diskRead(Disk *disk, uint64_t dest, uint64_t lba, uint64_t blockCount) {
 
 	/**
 	 * @note Using the 64-bit flat address doesn't seem to work in qemu and bochs.
@@ -150,7 +150,8 @@ static int diskGetParams(Disk *disk) {
 		return -1;
 	}
 
-	disk->blockSize = params.bytesPerSector;
+	disk->blockSize  = params.bytesPerSector;
+	disk->blockCount = params.physSectors;
 
 	if (
 			  !disk->blockSize

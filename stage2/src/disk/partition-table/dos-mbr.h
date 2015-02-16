@@ -12,6 +12,9 @@
 #include "partition-table.h"
 #include "disk/disk.h"
 
+#define MBR_SYSTEM_ID_EXTENDED 0x05
+#define MBR_SYSTEM_ID_GPT      0xee
+
 /**
  * \brief Detects and scans a DOS-style MBR partition table.
  *
