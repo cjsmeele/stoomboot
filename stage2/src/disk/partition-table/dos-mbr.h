@@ -9,6 +9,7 @@
 #define _DISK_PARTITION_TABLE_DOS_MBR_H
 
 #include "common.h"
+#include "partition-table.h"
 #include "disk/disk.h"
 
 /**

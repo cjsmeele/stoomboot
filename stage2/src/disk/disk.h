@@ -27,9 +27,10 @@ typedef struct Disk Disk; // Allows referring to Disk in the Partition struct.
 typedef struct {
 	Disk *disk;
 	uint16_t partitionNo;
-	uint8_t  systemId;
 	uint64_t lbaStart;
 	uint64_t blockCount;
+	uint8_t  type;
+	bool     active;
 } Partition;
 
 /**

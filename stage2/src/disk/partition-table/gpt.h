@@ -9,13 +9,14 @@
 #define _DISK_PARTITION_TABLE_GPT_H
 
 #include "common.h"
+#include "partition-table.h"
 #include "disk/disk.h"
 
 /**
  * \brief Detects and scans a GUID Partition Table.
  *
  * \param disk
- * \param lbaStart where the GPT starts starts (usually 1)
+ * \param lbaStart where the GPT starts (usually 1)
  * \param blockCount the size of the disk section covered by the GPT (usually $BLOCKCOUNT - 1 for the protective MBR)
  *
  * \return zero on success, non-zero on failure

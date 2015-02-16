@@ -207,7 +207,7 @@ static int diskScan(Disk *disk) {
 			break;
 		} else if (ret == DISK_PART_SCAN_ERR_CORRUPT) {
 			// The partition table was recognized by the scanner, but contains errors.
-			printf("warning: Partition table for disk %02xh was recognized as '%s' but corrupt",
+			printf("warning: Partition table for disk %02xh was recognized as '%s' but corrupt\n",
 				disk->biosId, diskScanners[i].name);
 			break;
 		} else if (ret == DISK_PART_SCAN_ERR_IO) {
@@ -234,11 +234,12 @@ static int diskScan(Disk *disk) {
 }
 
 int disksDiscover() {
-	printf("Scanning %u disk(s) out of %u\n", MIN(bda->hdCount, DISK_MAX_DISKS), bda->hdCount);
-
+	diskCount = bda->hdCount;
 	uint32_t availableDisks = 0;
 
-	for (int i=0; i<MIN(bda->hdCount, DISK_MAX_DISKS); i++) {
+	printf("Scanning %u disk(s) out of %u\n", MIN(diskCount, DISK_MAX_DISKS), diskCount);
+
+	for (uint32_t i=0; i<MIN(diskCount, DISK_MAX_DISKS); i++) {
 		memset(&disks[i], 0, sizeof(Disk));
 
 		disks[i].diskNo = i;
@@ -255,6 +256,39 @@ int disksDiscover() {
 			printf("warning: An error occurred while scanning disk %02xh\n", disks[i].biosId);
 		}
 	}
+
+	printf("Found the following partitions:\n\n");
+
+	int ret = printf("       %19s   %19s  %3s %6s %-7s\n",   "LBA Start", "LBA End", "Id", "Active", "Size");
+	for (int i=0; i<ret-1; i++)
+		putch('-');
+	putch('\n');
+
+	int partitionsPrinted = 0;
+
+	for (uint32_t i=0; i<MIN(diskCount, DISK_MAX_DISKS); i++) {
+		Disk *disk = &disks[i];
+		if (!disk->available)
+			continue;
+
+		for (uint32_t j=0; j<MIN(disk->partitionCount, DISK_MAX_PARTITIONS_PER_DISK); j++) {
+			Partition *part = &disk->partitions[j];
+
+			printf("hd%u:%u  %#08x.%08x - %#08x.%08x  %02xh %c      %'6uM\n",
+				disk->diskNo, part->partitionNo,
+				(uint32_t)(part->lbaStart >> 32), (uint32_t)part->lbaStart,
+				(uint32_t)((part->lbaStart + part->blockCount) >> 32),
+				(uint32_t)(part->lbaStart + part->blockCount),
+				part->type, part->active ? '*' : ' ',
+				part->blockCount >> 32 ? 0 : (uint32_t)part->blockCount * 512 / 1024 / 1024
+			);
+
+			partitionsPrinted++;
+		}
+	}
+
+	if (!partitionsPrinted)
+		printf("(none)\n");
 
 	return availableDisks;
 }
