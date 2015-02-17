@@ -36,8 +36,9 @@ IMGDIR := img
 # Output files {{{
 
 DISKFILE := $(IMGDIR)/$(PACKAGE_NAME)-disk.img
+FATFILE  := $(IMGDIR)/fat.img
 
-OUTFILES := $(DISKFILE)
+OUTFILES := $(DISKFILE) $(FATFILE)
 
 # }}}
 # Source and intermediate files {{{
@@ -52,10 +53,11 @@ INFILES := $(STAGE1_MBR_BIN) $(STAGE1_FAT32_BIN) $(STAGE2_BIN) $(KERNEL_BIN)
 # }}}
 # Toolkit {{{
 
-QEMU   ?= qemu-system-i386
-SFDISK ?= sfdisk
-DD     ?= dd
-GDB    ?= gdb
+QEMU    ?= qemu-system-i386
+SFDISK  ?= sfdisk
+MKDOSFS ?= mkfs.vfat
+DD      ?= dd
+GDB     ?= gdb
 
 # }}}
 # Toolkit flags {{{
@@ -123,6 +125,10 @@ $(DISKFILE): $(STAGE1_MBR_BIN) $(STAGE2_BIN) $(KERNEL_BIN)
 	""$(DISKFILE)"5 : start=   131104, size=    12288, Id=83\n"\
 	""$(DISKFILE)"6 : start=   143424, size=    53184, Id=83"\
 	| $(SFDISK) $(SFDISKFLAGS) $@ >/dev/null
+	$(Q)$(DD) $(DDFLAGS) if=/dev/zero of=$(FATFILE) bs=512 count=129024 2>/dev/null
+	$(E) "  MKDOSFS  "
+	$(Q)$(MKDOSFS) -F 32 -n OSDEV $(FATFILE)
+	$(Q)$(DD) $(DDFLAGS) if=$(FATFILE) of=$@ conv=notrunc bs=512 seek=2048 count=129024 2>/dev/null
 	$(E) "  INSTALL  $@"
 	$(Q)perl tools/loader-install.pl \
 		--mbr \

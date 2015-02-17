@@ -110,10 +110,24 @@ int diskRead(Disk *disk, uint64_t dest, uint64_t lba, uint64_t blockCount) {
 
 	if (errorCode) {
 		printf("warning: Disk I/O error: disk=%02xh, AH=%02xh\n", disk->biosId, errorCode);
+		printf(
+			"         lba: %#08x.%08x, block count %#08x.%08x\n",
+			(uint32_t)(lba >> 32), (uint32_t)lba,
+			(uint32_t)(blockCount >> 32), (uint32_t)blockCount
+		);
 		return -1;
 	} else {
 		return 0;
 	}
+}
+
+int partRead(Partition *part, uint64_t dest, uint64_t relLba, uint64_t blockCount) {
+	if (relLba + blockCount > part->blockCount) {
+		printf("warning: Tried to read outside of partition boundaries\n");
+		return -1;
+	}
+
+	return diskRead(part->disk, dest, part->lbaStart + relLba, blockCount);
 }
 
 /**
@@ -250,9 +264,14 @@ int disksDiscover() {
 		if (partitionCount > 0) {
 			disks[i].available = true;
 			availableDisks++;
+
+			for (uint32_t j=0; j<disks[i].partitionCount; j++)
+				fsDetect(&disks[i].partitions[j]);
+
 		} else if (partitionCount == 0) {
 			printf("warning: No partitions found on disk %02xh\n", disks[i].biosId);
 			availableDisks++; // We might want to chainload to this disk.
+
 		} else {
 			printf("warning: An error occurred while scanning disk %02xh\n", disks[i].biosId);
 		}
@@ -260,7 +279,10 @@ int disksDiscover() {
 
 	printf("Found the following partitions:\n\n");
 
-	int ret = printf("       %19s   %19s  %3s %6s %-7s\n",   "LBA Start", "LBA End", "Id", "Active", "Size");
+	int ret = printf(
+		"       %19s   %19s  %3s %1s %-10s %8s\n",
+		"LBA Start", "LBA End", "Id", "B", "Size", "FS"
+	);
 	for (int i=0; i<ret-1; i++)
 		putch('-');
 	putch('\n');
@@ -275,13 +297,14 @@ int disksDiscover() {
 		for (uint32_t j=0; j<MIN(disk->partitionCount, DISK_MAX_PARTITIONS_PER_DISK); j++) {
 			Partition *part = &disk->partitions[j];
 
-			printf("hd%u:%u  %#08x.%08x - %#08x.%08x  %02xh %c      %'6uM\n",
+			printf("hd%u:%u  %#08x.%08x - %#08x.%08x  %02xh %c %'9uM %s\n",
 				disk->diskNo, part->partitionNo,
 				(uint32_t)(part->lbaStart >> 32), (uint32_t)part->lbaStart,
 				(uint32_t)((part->lbaStart + part->blockCount) >> 32),
 				(uint32_t)(part->lbaStart + part->blockCount),
 				part->type, part->active ? '*' : ' ',
-				part->blockCount >> 32 ? 0 : (uint32_t)part->blockCount * 512 / 1024 / 1024
+				part->blockCount >> 32 ? 0 : (uint32_t)part->blockCount / 1024 * 512 / 1024,
+				part->fsDriver ? part->fsDriver->name : ""
 			);
 
 			partitionsPrinted++;

@@ -9,6 +9,7 @@
 #define _DISK_DISK_H
 
 #include "common.h"
+#include "fs/fs.h"
 
 #define DISK_MAX_DISKS               8
 #define DISK_MAX_PARTITIONS_PER_DISK 16
@@ -20,18 +21,20 @@
 #define DISK_PART_SCAN_ERR_IO        (-3)
 
 typedef struct Disk Disk; // Allows referring to Disk in the Partition struct.
+typedef struct Partition Partition;
 
 /**
  * \brief Disk partition.
  */
-typedef struct {
-	Disk *disk;
+struct Partition {
+	Disk             *disk;
+	FileSystemDriver *fsDriver;
 	uint16_t partitionNo;
 	uint64_t lbaStart;
 	uint64_t blockCount;
 	uint8_t  type;
 	bool     active;
-} Partition;
+};
 
 /**
  * \brief Hard disk.
@@ -57,7 +60,7 @@ extern Disk     disks[];
 Disk *getBootDisk();
 
 /**
- * \brief Read sectors from a hard drive.
+ * \brief Read blocks from a hard drive.
  *
  * \param disk a pointer to a disk structure
  * \param dest destination address
@@ -67,6 +70,20 @@ Disk *getBootDisk();
  * \return zero on success, non-zero on error
  */
 int diskRead(Disk *disk, uint64_t dest, uint64_t lba, uint64_t blockCount);
+
+/**
+ * \brief Read blocks from a partition.
+ *
+ * Does bound checks.
+ *
+ * \param part
+ * \param dest
+ * \param relLba
+ * \param blockCount
+ *
+ * \return zero on success, non-zero on error
+ */
+int partRead(Partition *part, uint64_t dest, uint64_t relLba, uint64_t blockCount);
 
 /**
  * \brief Detects disk drives, parses partition tables, fills Disk structs.

@@ -103,6 +103,7 @@ int dosMbrScan(Disk *disk, uint64_t lbaStart, uint64_t blockCount) {
 
 						if (logPte->lbaStart && logPte->blockCount) {
 							Partition *partition   = &disk->partitions[disk->partitionCount];
+							partition->disk        = disk;
 							partition->partitionNo = disk->partitionCount++;
 							partition->lbaStart    = nextEbr + logPte->lbaStart;
 							partition->blockCount  = logPte->blockCount;
@@ -121,6 +122,7 @@ int dosMbrScan(Disk *disk, uint64_t lbaStart, uint64_t blockCount) {
 					}
 				} else {
 					Partition *partition   = &disk->partitions[disk->partitionCount];
+					partition->disk        = disk;
 					partition->partitionNo = disk->partitionCount++;
 					partition->lbaStart    = pte->lbaStart;
 					partition->blockCount  = pte->blockCount;
