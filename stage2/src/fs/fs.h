@@ -27,7 +27,7 @@ struct FileSystemDriver {
  *
  * \param part
  *
- * \return zero if a partition was detected, non-zero on error
+ * \return zero if a filesystem was detected, non-zero on error
  */
 int fsDetect(Partition *part);
 
