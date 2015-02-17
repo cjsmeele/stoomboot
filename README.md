@@ -14,7 +14,7 @@ system, for fun.
 
 This project will consist of the following components:
 
-- A two-stage bootloader with FAT32 support
+- A two-stage bootloader with VFAT support
 - An operating system kernel that supports paged memory management, a
   virtual filesystem, and preemptive multitasking
 - Some userspace utilities, if we ever get that far :)

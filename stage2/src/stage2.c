@@ -11,8 +11,6 @@
 
 
 void stage2Main(uint32_t bootDiskNo) {
-	printf("\nHello, world!\n");
-	printf("Booting from disk: %02xh\n", bootDiskNo);
 
 	if (disksDiscover() <= 0) {
 		// We did not detect any usable disks, abort.

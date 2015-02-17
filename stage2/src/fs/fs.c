@@ -6,9 +6,15 @@
  * \license   MIT. See LICENSE for the full license text.
  */
 #include "fs.h"
+#include "vfat.h"
 #include "console.h"
 
 static FileSystemDriver fsDrivers[] = {
+	{
+		"vfat",
+		vfatDetect,
+		// ... (other fs operations).
+	},
 };
 
 int fsDetect(Partition *part) {
