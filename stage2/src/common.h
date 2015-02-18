@@ -74,6 +74,28 @@ bool memeq(const void *source1, const void *source2, size_t length);
 size_t strlen(const char *str);
 
 /**
+ * \brief Find the first occurrence of a char in a string.
+ *
+ * \param str
+ * \param ch
+ *
+ * \return a pointer to the location of ch in str, or a pointer to
+ *         the terminating NULL byte if the character was not found
+ */
+char *strchr(const char *str, char ch);
+
+/**
+ * \brief Copy a string.
+ *
+ * \param dest
+ * \param src
+ * \param length the maximum amount of bytes to copy
+ *
+ * \return a pointer to dest
+ */
+char *strncpy(char *dest, const char *src, size_t length);
+
+/**
  * \brief Extract an integer from a string.
  *
  * \param buf a null-terminated string containing only a decimal numbers, and optonally a '-' sign

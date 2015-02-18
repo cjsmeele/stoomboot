@@ -81,6 +81,25 @@ size_t strlen(const char *str) {
 	return i;
 }
 
+char *strchr(const char *str, char ch) {
+	size_t slen = strlen(str);
+	for (size_t i=0; i<=slen; i++, str++) {
+		if (*str == ch)
+			break;
+	}
+
+	return (char*)str;
+}
+
+char *strncpy(char *dest, const char *src, size_t length) {
+	for (size_t i=0; i<length; i++) {
+		dest[i] = src[i];
+		if (!src[i])
+			break;
+	}
+	return dest;
+}
+
 static uint32_t powU(uint32_t x, uint32_t y){
 	if(!y)
 		return 1;
