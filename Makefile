@@ -29,7 +29,8 @@ STAGE1DIR := stage1
 STAGE2DIR := stage2
 KERNELDIR := kernel
 
-FSDIR  := disk
+FSDIR   := disk
+BOOTDIR := $(FSDIR)/boot
 IMGDIR := img
 
 # }}}
@@ -48,7 +49,9 @@ STAGE1_FAT32_BIN := $(STAGE1DIR)/bin/stage1-fat32.bin
 STAGE2_BIN       := $(STAGE2DIR)/bin/stage2.bin
 KERNEL_BIN       := $(KERNELDIR)/bin/kernel.elf
 
-INFILES := $(STAGE1_MBR_BIN) $(STAGE1_FAT32_BIN) $(STAGE2_BIN) $(KERNEL_BIN)
+DISKFILES        := $(shell find $(FSDIR) -mindepth 1)
+
+INFILES := $(STAGE1_MBR_BIN) $(STAGE1_FAT32_BIN) $(STAGE2_BIN) $(KERNEL_BIN) $(DISKFILES)
 
 # }}}
 # Toolkit {{{
@@ -105,9 +108,9 @@ clean-all: clean
 
 disk: $(DISKFILE)
 
-# TODO: Install stage1 in FAT32 bootsector.
+# TODO: Split up the DISKFILE target. (image, FS creation, etc.).
 
-$(DISKFILE): $(STAGE1_MBR_BIN) $(STAGE2_BIN) $(KERNEL_BIN)
+$(DISKFILE): $(STAGE1_MBR_BIN) $(STAGE2_BIN) $(KERNEL_BIN) $(DISKFILES)
 	$(E) ""
 	$(E) "Disk Image"
 	$(E) "=========="
@@ -128,6 +131,7 @@ $(DISKFILE): $(STAGE1_MBR_BIN) $(STAGE2_BIN) $(KERNEL_BIN)
 	$(Q)$(DD) $(DDFLAGS) if=/dev/zero of=$(FATFILE) bs=512 count=129024 2>/dev/null
 	$(E) "  MKDOSFS  "
 	$(Q)$(MKDOSFS) -F 32 -n OSDEV $(FATFILE)
+	$(Q)mcopy -s $(BOOTDIR)/* ::/ -i $(FATFILE)
 	$(Q)$(DD) $(DDFLAGS) if=$(FATFILE) of=$@ conv=notrunc bs=512 seek=2048 count=129024 2>/dev/null
 	$(E) "  INSTALL  $@"
 	$(Q)perl tools/loader-install.pl \
