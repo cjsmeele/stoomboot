@@ -16,7 +16,7 @@
  *
  * \param part
  *
- * \return  whether the given partition contains a VFAT filesystem
+ * \return whether the given partition contains a VFAT filesystem
  */
 bool vfatDetect (Partition *part);
 

@@ -29,11 +29,14 @@ typedef struct Partition Partition;
 struct Partition {
 	Disk             *disk;
 	FileSystemDriver *fsDriver;
+	uint64_t id; ///< Some FS' UUIDs may need to be trimmed to fit in this field.
+	char     label[16];
 	uint16_t partitionNo;
 	uint64_t lbaStart;
 	uint64_t blockCount;
 	uint8_t  type;
 	bool     active;
+	bool     fsInitialized; ///< Whether FS code has initialized Partition fields (currently only applies to 'label' and 'id').
 };
 
 /**

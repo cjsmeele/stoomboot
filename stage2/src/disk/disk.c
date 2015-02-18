@@ -280,8 +280,8 @@ int disksDiscover() {
 	printf("Found the following partitions:\n\n");
 
 	int ret = printf(
-		"       %19s   %19s  %3s %1s %-10s %8s\n",
-		"LBA Start", "LBA End", "Id", "B", "Size", "FS"
+		"       %15s  %15s %3s %1s %-10s %8s %12s\n",
+		"LBA Start", "LBA End", "Id", "B", "Size", "FS", "Label"
 	);
 	for (int i=0; i<ret-1; i++)
 		putch('-');
@@ -297,14 +297,17 @@ int disksDiscover() {
 		for (uint32_t j=0; j<MIN(disk->partitionCount, DISK_MAX_PARTITIONS_PER_DISK); j++) {
 			Partition *part = &disk->partitions[j];
 
-			printf("hd%u:%u  %#08x.%08x - %#08x.%08x  %02xh %c %'9uM %s\n",
+			printf("hd%u:%u %#04x.%08x - %#04x.%08x %02xh %c %'9uM %8s %12s\n",
 				disk->diskNo, part->partitionNo,
 				(uint32_t)(part->lbaStart >> 32), (uint32_t)part->lbaStart,
 				(uint32_t)((part->lbaStart + part->blockCount) >> 32),
 				(uint32_t)(part->lbaStart + part->blockCount),
 				part->type, part->active ? '*' : ' ',
-				part->blockCount >> 32 ? 0 : (uint32_t)part->blockCount / 1024 * 512 / 1024,
-				part->fsDriver ? part->fsDriver->name : ""
+				part->blockCount >> 32
+					? 0
+					: (uint32_t)part->blockCount / 1024 * 512 / 1024,
+				part->fsDriver ? part->fsDriver->name : "",
+				part->label
 			);
 
 			partitionsPrinted++;
