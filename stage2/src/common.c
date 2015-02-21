@@ -91,6 +91,15 @@ char *strchr(const char *str, char ch) {
 	return (char*)str;
 }
 
+bool streq(const char *str1, const char *str2) {
+	while (*str1 && *str2) {
+		if (*str1++ != *str2++)
+			return false;
+	}
+
+	return *str1 == *str2;
+}
+
 char *strncpy(char *dest, const char *src, size_t length) {
 	for (size_t i=0; i<length; i++) {
 		dest[i] = src[i];
@@ -98,6 +107,33 @@ char *strncpy(char *dest, const char *src, size_t length) {
 			break;
 	}
 	return dest;
+}
+
+void rtrim(char *str) {
+	for (ssize_t i=strlen(str)-1; i>=0; i--) {
+		if (
+				   str[i] == ' '
+				|| str[i] == '\t'
+				|| str[i] == '\v'
+				|| str[i] == '\r'
+				|| str[i] == '\n'
+			)
+			str[i] = '\0';
+		else
+			break;
+	}
+}
+
+void toLowerCase(char *str) {
+	size_t slen = strlen(str);
+	for (size_t i=0; i<slen; i++)
+		str[i] += str[i] >= 'A' && str[i] <= 'Z' ? 'a' - 'A' : 0;
+}
+
+void toUpperCase(char *str) {
+	size_t slen = strlen(str);
+	for (size_t i=0; i<slen; i++)
+		str[i] -= str[i] >= 'a' && str[i] <= 'z' ? 'a' - 'A' : 0;
 }
 
 static uint32_t powU(uint32_t x, uint32_t y){

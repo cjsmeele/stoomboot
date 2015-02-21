@@ -85,6 +85,16 @@ size_t strlen(const char *str);
 char *strchr(const char *str, char ch);
 
 /**
+ * \brief Check if two strings are equal.
+ *
+ * \param str1
+ * \param str2
+ *
+ * \return
+ */
+bool streq(const char *str1, const char *str2);
+
+/**
  * \brief Copy a string.
  *
  * \param dest
@@ -94,6 +104,27 @@ char *strchr(const char *str, char ch);
  * \return a pointer to dest
  */
 char *strncpy(char *dest, const char *src, size_t length);
+
+/**
+ * \brief Strip whitespace off the right side of a string.
+ *
+ * \param str
+ */
+void rtrim(char *str);
+
+/**
+ * \brief Convert a string to lower case.
+ *
+ * \param str
+ */
+void toLowerCase(char *str);
+
+/**
+ * \brief Convert a string to upper case.
+ *
+ * \param str
+ */
+void toUpperCase(char *str);
 
 /**
  * \brief Extract an integer from a string.
