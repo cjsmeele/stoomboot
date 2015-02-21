@@ -85,6 +85,10 @@ CFLAGS  := \
 	-I$(SRCDIR) \
 	$(CWARNINGS)
 
+ifdef SERIAL_IO
+CFLAGS += -DCONFIG_CONSOLE_SERIAL_IO=1
+endif
+
 LDLIBPATH :=
 LDFLAGS    = $(addprefix -L, $(LDLIBPATH))
 

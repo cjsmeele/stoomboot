@@ -67,13 +67,17 @@ GDB     ?= gdb
 
 SFDISKFLAGS := -H 64 -S 32
 
-QEMUFLAGS   := -m 64M -name "osdev" -net none -serial stdio -vga std \
+QEMUFLAGS   := -m 64M -name "osdev" -net none -serial none -vga std \
 	-drive file=$(DISKFILE),if=scsi,media=disk,format=raw
 
 QEMUFLAGS_DEBUG := -m 64M -name "osdev" -net none -serial none -vga std \
 	-drive file=$(DISKFILE),if=scsi,media=disk,format=raw -s -S
 
 GDBFLAGS := -q -n -x gdbrc
+
+ifdef SERIAL_IO
+QEMUFLAGS += -serial stdio -display none
+endif
 
 # }}}
 

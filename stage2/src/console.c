@@ -8,23 +8,59 @@
 #include "console.h"
 #include <stdarg.h>
 
-void putch(char ch) {
-	if (ch == '\n') {
+#if CONFIG_CONSOLE_SERIAL_IO
+#include "bda.h"
+
+static bool serialDeviceInitialized = false;
+
+static void initCom0() {
+	asm volatile (
+		"int $0x14"
+		:
+		: "a" ((uint16_t)0b11100011),
+		  "d" (0)
+		: "cc"
+	);
+	serialDeviceInitialized = true;
+}
+
+static inline bool isSerialIoAvailable() {
+	return bda->com0IoPort != 0;
+}
+
+#endif /* CONFIG_CONSOLE_SERIAL_IO */
+
+static void doPutch(char ch) {
+#if CONFIG_CONSOLE_SERIAL_IO
+	if (isSerialIoAvailable()) {
+		if (!serialDeviceInitialized)
+			initCom0();
+
 		asm volatile (
-			"int $0x10"
+			"int $0x14"
 			:
-			: "a" (0x0e << 8 | '\r'),
-			  "b" (0x07)
-			: "memory", "cc"
+			: "a" (0x01 << 8 | ch),
+			  "d" (0)
+			: "cc"
 		);
-	}
+	} else {
+#endif /* CONFIG_CONSOLE_SERIAL_IO */
 	asm volatile (
 		"int $0x10"
 		:
 		: "a" (0x0e << 8 | ch),
 		  "b" (0x07)
-		: "memory", "cc"
+		: "cc"
 	);
+#if CONFIG_CONSOLE_SERIAL_IO
+	}
+#endif /* CONFIG_CONSOLE_SERIAL_IO */
+}
+
+void putch(char ch) {
+	if (ch == '\n')
+		doPutch('\r');
+	doPutch(ch);
 }
 
 void puts(const char *str) {
@@ -319,6 +355,44 @@ int printf(const char *format, ...) {
 #undef CONSOLE_PRINTF_RESET_FORMAT
 
 bool getKey(Key *key, bool wait) {
+
+#if CONFIG_CONSOLE_SERIAL_IO
+	if (isSerialIoAvailable()) {
+		if (!serialDeviceInitialized)
+			initCom0();
+
+		if (!wait) {
+			uint16_t status = 0x0300;
+
+			// Get serial port status.
+			asm volatile (
+				"int $0x14"
+				: "+a" (status)
+				: "d" (0)
+				: "cc"
+			);
+
+			if (!(status & 1 << 8)) {
+				// Bit 8 is 0: No data avaiable.
+				return false;
+			}
+		}
+
+		uint16_t ret = 0x0200;
+
+		asm volatile (
+			"int $0x14"
+			: "+a" (ret)
+			: "d"  (0)
+			: "cc"
+		);
+
+		key->chr      = ret & 0xff;
+		key->scanCode = 0; // Not applicable to serial I/O.
+
+	} else {
+#endif /* CONFIG_CONSOLE_SERIAL_IO */
+
 	if (!wait) {
 		uint16_t ready = 0;
 		asm volatile (
@@ -329,7 +403,7 @@ bool getKey(Key *key, bool wait) {
 			"_not_ready:"
 			: "+r" (ready)
 			: "a" (1 << 8)
-			: "memory", "cc"
+			: "cc"
 		);
 
 		if (!ready)
@@ -341,11 +415,15 @@ bool getKey(Key *key, bool wait) {
 		"int $0x16"
 		: "+a" (keyInfo)
 		:
-		: "memory", "cc"
+		: "cc"
 	);
 
 	key->chr      = keyInfo & 0xff;
 	key->scanCode = keyInfo >> 8;
+
+#if CONFIG_CONSOLE_SERIAL_IO
+	}
+#endif /* CONFIG_CONSOLE_SERIAL_IO */
 
 	return true;
 }
@@ -365,7 +443,7 @@ uint16_t getLine(char *line, size_t size) {
 				line[0] = 0;
 				puts("\r\n");
 				break;
-			} else if (key.chr == '\b') {
+			} else if (key.chr == '\b' || key.chr == '\x7f') {
 				if (i > 0) {
 					putch('\b');
 					putch(' ');

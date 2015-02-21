@@ -13,6 +13,10 @@
 #define CONSOLE_PRINTF_DECIMAL_DIGIT_GROUP_CHAR '\''
 #define CONSOLE_PRINTF_HEX_DIGIT_GROUP_CHAR     '.'
 
+#ifndef CONFIG_CONSOLE_SERIAL_IO
+#define CONFIG_CONSOLE_SERIAL_IO 0
+#endif /* CONFIG_CONSOLE_SERIAL_IO */
+
 /**
  * \brief A keyboard key.
  */
