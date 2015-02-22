@@ -11,6 +11,7 @@ Makefile.local
 # Local backup and swap files
 *~*
 *.swp
+*.swo
 
 # Vim ctags
-/tags
+tags
