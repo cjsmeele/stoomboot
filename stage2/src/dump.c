@@ -33,8 +33,7 @@ void dump(void *_ptr, size_t length) {
 
 		for (uint32_t k=0; k<j; k++) {
 			char ch = ptr[k];
-			printf(
-				"%c",
+			putch(
 				ch >= ' ' && ch <= '~'
 				? ch
 				: '.'
