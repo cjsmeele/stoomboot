@@ -1,30 +1,13 @@
-; Copyright (c) 2014 Chris Smeele
-;
-; Permission is hereby granted, free of charge, to any person obtaining a copy
-; of this software and associated documentation files (the "Software"), to deal
-; in the Software without restriction, including without limitation the rights
-; to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-; copies of the Software, and to permit persons to whom the Software is
-; furnished to do so, subject to the following conditions:
-;
-; The above copyright notice and this permission notice shall be included in
-; all copies or substantial portions of the Software.
-;
-; THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-; IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-; FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-; AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-; LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-; OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-; THE SOFTWARE.
+;; \file
+;; \brief     Bootloader stage1, MBR version.
+;; \author    Chris Smeele
+;; \copyright Copyright (c) 2014, 2015, Chris Smeele. All rights reserved.
+;; \license   MIT. See LICENSE for the full license text.
 
 [bits 16]
 [org 0x7c00]
 
 jmp 0x0000:start ; Far jump to start.
-
-u8_boot_device:
-	db 0
 
 ;; Disk address packet structure.
 struct_dap:
@@ -38,8 +21,14 @@ struct_dap:
 
 	dq 0 ; The stage2 LBA, to be filled in by the installer.
 
+u8_boot_device:
+	db 0
+
+u64_loader_fs_id:
+	dq 0 ; Bootloader filesystem id, to be filled in by the installer.
+
 s_loading:                  db "Loading... stage1 ", 0
-s_err_no_int13h_extensions: db "Error: No int13h extensions present for LBA disk access :(", 0
+s_err_no_int13h_extensions: db "Error: No int13h extensions present :(", 0
 s_err_disk:                 db "Error: Could not read stage2 from boot disk 0x", 0
 s_err_disk_2:               db ", AH=0x", 0
 s_err_magic:                db "Error: No valid stage2 magic number found", 0
@@ -85,18 +74,17 @@ putbyte:
 			jmp .put
 		.lower:
 			and al, 0x0f
-
-		.put:
-			cmp al, 0x0a
-			jb .decimal
-			.hex:
-				add al, 'a' - 10
-				int 0x10
-				ret
-			.decimal:
-				add al, '0'
-				int 0x10
-				ret
+	.put:
+		cmp al, 0x0a
+		jb .decimal
+		.hex:
+			add al, 'a' - 10
+			int 0x10
+			ret
+		.decimal:
+			add al, '0'
+			int 0x10
+			ret
 
 has_int13h_extensions:
 	mov ah, 0x41
@@ -156,9 +144,10 @@ start:
 	or al, al
 	jnz .magic_loop
 
-	; Jump to stage2. Pass the boot device number in AL.
+	; Jump to stage2. Pass the boot device number in AL and a pointer to the FS id in DX.
 	mov al, [u8_boot_device]
 	xor ah, ah
+	lea dx, [u64_loader_fs_id]
 	jmp 0x0000:(0x7e00 + s_stage2_magic_end - s_stage2_magic)
 
 	.magic_error:

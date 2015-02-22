@@ -10,11 +10,16 @@
 
 #include "common.h"
 
+#ifndef CONFIG_LOADER_CONFIG_PATH
+#define CONFIG_LOADER_CONFIG_PATH "/boot/loader/boot.cfg"
+#endif /* CONFIG_LOADER_CONFIG_PATH */
+
 /**
  * \brief Stage 2 C entrypoint.
  *
  * \param bootDiskNo the BIOS boot disk number (usually 80h)
+ * \param loaderFsId the bootloader's filesystem UUID
  */
-void stage2Main(uint32_t bootDiskNo) __attribute__((noreturn));
+void stage2Main(uint32_t bootDiskNo, uint64_t loaderFsId) __attribute__((noreturn));
 
 #endif /* _STAGE2_H */

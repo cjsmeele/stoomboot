@@ -41,6 +41,8 @@ FATFILE  := $(IMGDIR)/fat.img
 
 OUTFILES := $(DISKFILE) $(FATFILE)
 
+LOADER_FS_ID := $(shell printf '%08x' `date +'%s'`)
+
 # }}}
 # Source and intermediate files {{{
 
@@ -134,7 +136,7 @@ $(DISKFILE): $(STAGE1_MBR_BIN) $(STAGE2_BIN) $(KERNEL_BIN) $(DISKFILES)
 	| $(SFDISK) $(SFDISKFLAGS) $@ >/dev/null
 	$(Q)$(DD) $(DDFLAGS) if=/dev/zero of=$(FATFILE) bs=512 count=129024 2>/dev/null
 	$(E) "  MKDOSFS  "
-	$(Q)$(MKDOSFS) -F 32 -n OSDEV $(FATFILE)
+	$(Q)$(MKDOSFS) -F 32 -i $(LOADER_FS_ID) -n OSDEV $(FATFILE)
 	$(Q)mcopy -s $(BOOTDIR)/* ::/ -i $(FATFILE)
 	$(Q)$(DD) $(DDFLAGS) if=$(FATFILE) of=$@ conv=notrunc bs=512 seek=2048 count=129024 2>/dev/null
 	$(E) "  INSTALL  $@"
@@ -143,6 +145,7 @@ $(DISKFILE): $(STAGE1_MBR_BIN) $(STAGE2_BIN) $(KERNEL_BIN) $(DISKFILES)
 		--stage1-mbr $(STAGE1_MBR_BIN) \
 		--stage2 $(STAGE2_BIN) \
 		--stage2-lba 1 \
+		--loader-fs-id $(LOADER_FS_ID) \
 		--img $@
 
 $(STAGE1_MBR_BIN): stage1-mbr-bin ;

@@ -22,9 +22,11 @@ db "STAGE2", 0, 0 ; magic!
 jmp start
 
 u16_boot_device: dw 0
+u16_fs_id_ptr:   dw 0
 
 start:
 	mov [u16_boot_device], ax
+	mov [u16_fs_id_ptr], dx
 
 	cli
 	; Set up the stack, again.
@@ -44,11 +46,21 @@ start:
 	mov esi, s_loading
 	call long puts
 
+	mov ebp, esp
+
+	; Push the FS id parameter.
+	mov si, [u16_fs_id_ptr]
+	mov eax, [si + 4]
+	push eax
+	lodsd
+	push eax
+
+	; Push the boot device parameter.
+	mov esi, [u16_fs_id_ptr]
 	xor eax, eax
 	mov ax, [u16_boot_device]
-
-	mov ebp, esp
 	push eax
+
 	call long stage2Main ; Call into C.
 
 	cli

@@ -1,6 +1,6 @@
 #!/usr/bin/env perl
 
-# Copyright (c) 2014 Chris Smeele
+# Copyright (c) 2014, 2015 Chris Smeele
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -27,6 +27,9 @@ use warnings;
 
 use Getopt::Long;
 
+my $STAGE1_DAP_OFFSET          = 0x05; # Offset to the start of the DAP struct.
+my $STAGE1_LOADER_FS_ID_OFFSET = $STAGE1_DAP_OFFSET + 0x10 + 1; # DAP + boot device id.
+
 my $o_mbr = 0;
 my $o_fat;
 my $o_img;
@@ -35,6 +38,7 @@ my $o_stage1_fat;
 my $o_stage2;
 my $o_stage2_offset;
 my $o_stage2_blocks;
+my $o_loader_fs_id = 0;
 
 GetOptions(
 	"mbr!"            => \$o_mbr,
@@ -45,7 +49,10 @@ GetOptions(
 	"stage2=s"        => \$o_stage2,
 	"stage2-lba=i"    => \$o_stage2_offset,
 	"stage2-blocks=i" => \$o_stage2_blocks,
+	"loader-fs-id=s"  => \$o_loader_fs_id,
 );
+
+$o_loader_fs_id = hex $o_loader_fs_id;
 
 die "$0: no disk image specified\n"    if not defined $o_img;
 die "$0: no stage2 offset specified\n" if not defined $o_stage2_offset;
@@ -66,7 +73,7 @@ open my $img, '+<', $o_img or die "$0: could not open image file: $!\n";
 binmode $img;
 
 my @stage2;
-if(defined $o_stage2){
+if (defined $o_stage2) {
 	my $stage2 = slurp $o_stage2;
 	   @stage2 = unpack 'C*', $stage2;
 	$o_stage2_blocks = int (@stage2 / 512 + (@stage2 % 512 ? 1 : 0));
@@ -74,7 +81,7 @@ if(defined $o_stage2){
 
 die "$0: stage2 too large (max 64K)\n" if length($o_stage2_blocks) > 64*1024;
 
-if($o_mbr){
+if ($o_mbr) {
 	die "$0: no mbr stage1 image specified\n" if not defined $o_stage1_mbr;
 	my $stage1 = slurp $o_stage1_mbr;
 	my @stage1 = unpack 'C*', $stage1;
@@ -82,7 +89,7 @@ if($o_mbr){
 	die "$0: stage1 bootsector should be exactly 512 bytes long\n"
 		if @stage1 != 512;
 
-	die "$0: bytes 437..510 in mbr stage1 should be set to NUL\n"
+	die "$0: bytes 437..510 in mbr stage1 should be set to NUL (is your stage1 code too long?)\n"
 		if grep { $_ } @stage1[436..509];
 
 	die "$0: stage1 bootsector does not contain magic 0x55 0xaa string\n"
@@ -94,20 +101,24 @@ if($o_mbr){
 	# Write bootsector.
 	print $img pack 'C*', @stage1[0..435];
 
-	# Write stage2 address. Offset is 14 (inside an int 13h DAP).
-	seek $img, 0x0e, 0;
+	# Write stage2 LBA.
+	seek $img, $STAGE1_DAP_OFFSET + 0x08, 0;
 	print $img pack 'Q', $o_stage2_offset;
 
 	# Write stage2 block count into the DAP.
-	seek $img, 0x08, 0;
+	seek $img, $STAGE1_DAP_OFFSET + 0x02, 0;
 	print $img pack 'C', $o_stage2_blocks;
+
+	# Write loader filesystem id.
+	seek $img, $STAGE1_LOADER_FS_ID_OFFSET, 0;
+	print $img pack 'Q', $o_loader_fs_id;
 
 	# Write bootsector magic.
 	seek $img, 510, 0;
 	print $img pack 'C*', 0x55, 0xaa;
 }
 
-if(defined $o_stage2){
+if (defined $o_stage2) {
 	seek $img, $o_stage2_offset*512, 0;
 	print $img pack 'C*', @stage2;
 }
