@@ -13,6 +13,8 @@
 
 void stage2Main(uint32_t bootDiskNo, uint64_t loaderFsId) {
 
+	printf("\nWelcome to the Havik bootloader.\n\n");
+
 	if (bootDiskNo != 0x80)
 		printf("warning: Boot disk (%02xh) is not 80h\n", bootDiskNo);
 
@@ -50,6 +52,7 @@ void stage2Main(uint32_t bootDiskNo, uint64_t loaderFsId) {
 		}
 		assert(fileInfo.type == FILE_TYPE_REGULAR);
 
+		/*
 		printf("Dumping loader configuration:\n\n");
 
 		uint8_t buffer[loaderPart->disk->blockSize];
@@ -61,6 +64,7 @@ void stage2Main(uint32_t bootDiskNo, uint64_t loaderFsId) {
 
 			dump(buffer, MIN(fileInfo.size - i, loaderPart->disk->blockSize));
 		}
+		*/
 	} else {
 		printf(
 			"error: Could not find bootloader file system with id %08x-%08x\n",
@@ -70,6 +74,11 @@ void stage2Main(uint32_t bootDiskNo, uint64_t loaderFsId) {
 		panic("No bootloader file system found");
 	}
 
+#if CONFIG_CONSOLE_SERIAL_IO
 	printf("\nShutting down.\n");
 	shutDown();
+#else
+	printf("\nHalting.\n");
+	hang();
+#endif /* CONFIG_CONSOLE_SERIAL_IO */
 }

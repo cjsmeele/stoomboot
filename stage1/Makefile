@@ -15,7 +15,7 @@ endif
 # }}}
 # Package metadata {{{
 
-PACKAGE_NAME    := stage1
+PACKAGE_NAME    := havik-stage1
 PACKAGE_VERSION := $(shell git describe --always --dirty)
 
 ifndef PACKAGE_VERSION

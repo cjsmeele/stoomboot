@@ -15,7 +15,7 @@ endif
 # }}}
 # Package metadata {{{
 
-PACKAGE_NAME    := osdev
+PACKAGE_NAME    := havik
 PACKAGE_VERSION := $(shell git describe --always --dirty)
 
 ifndef PACKAGE_VERSION
@@ -46,10 +46,10 @@ LOADER_FS_ID := $(shell printf '%08x' `date +'%s'`)
 # }}}
 # Source and intermediate files {{{
 
-STAGE1_MBR_BIN   := $(STAGE1DIR)/bin/stage1-mbr.bin
-STAGE1_FAT32_BIN := $(STAGE1DIR)/bin/stage1-fat32.bin
-STAGE2_BIN       := $(STAGE2DIR)/bin/stage2.bin
-KERNEL_BIN       := $(KERNELDIR)/bin/kernel.elf
+STAGE1_MBR_BIN   := $(STAGE1DIR)/bin/$(PACKAGE_NAME)-stage1-mbr.bin
+STAGE1_FAT32_BIN := $(STAGE1DIR)/bin/$(PACKAGE_NAME)-stage1-fat32.bin
+STAGE2_BIN       := $(STAGE2DIR)/bin/$(PACKAGE_NAME)-stage2.bin
+KERNEL_BIN       := $(KERNELDIR)/bin/$(PACKAGE_NAME)-kernel.elf
 
 DISKFILES        := $(shell find $(FSDIR) -mindepth 1)
 

@@ -15,7 +15,7 @@ endif
 # }}}
 # Package metadata {{{
 
-PACKAGE_NAME    := stage2
+PACKAGE_NAME    := havik-stage2
 PACKAGE_VERSION := $(shell git describe --always --dirty)
 
 ifndef PACKAGE_VERSION
@@ -46,7 +46,7 @@ DEPFILES := $(CFILES:$(SRCDIR)/%.c=$(DEPDIR)/%.d)
 OBJNAMES := $(ASMFILES:$(SRCDIR)/%.asm=%) $(CFILES:$(SRCDIR)/%.c=%)
 OBJFILES := $(OBJNAMES:%=$(OBJDIR)/%.o)
 
-LDFILE := $(PACKAGE_NAME).ld
+LDFILE := stage2.ld
 
 INFILES := $(ASMFILES) $(CFILES) $(HFILES)
 

@@ -14,7 +14,7 @@ endif
 # }}}
 # Package metadata {{{
 
-PACKAGE_NAME    := kernel
+PACKAGE_NAME    := havik-kernel
 PACKAGE_VERSION := $(shell git describe --always --dirty)
 
 ifndef PACKAGE_VERSION
