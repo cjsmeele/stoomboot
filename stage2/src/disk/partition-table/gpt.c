@@ -8,6 +8,9 @@
 #include "gpt.h"
 #include "console.h"
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
+
 int gptScan(Disk *disk, uint64_t lbaStart, uint64_t blockCount) {
 	/// @todo Parse GPT.
 
@@ -15,3 +18,5 @@ int gptScan(Disk *disk, uint64_t lbaStart, uint64_t blockCount) {
 
 	return DISK_PART_SCAN_ERR_TRY_OTHER;
 }
+
+#pragma GCC diagnostic pop

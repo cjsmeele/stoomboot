@@ -7,9 +7,14 @@
  */
 #include "partition-table.h"
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
+
 bool verifyPartitionLayout(Disk *disk) {
 
 	/// @todo Unimplemented.
 
 	return true;
 }
+
+#pragma GCC diagnostic pop
