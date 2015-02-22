@@ -9,10 +9,6 @@
 #include "vfat.h"
 #include "console.h"
 
-#define FS_SUCCESS         (0)
-#define FS_IO_ERROR       (-1)
-#define FS_FILE_NOT_FOUND (-2)
-
 static FileSystemDriver fsDrivers[] = {
 	{
 		"vfat",

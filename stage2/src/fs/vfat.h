@@ -13,6 +13,14 @@
 #include "common.h"
 #include "fs/fs.h"
 
+/*
+ * For VFAT, the address fields of the FileInfo struct are filled in as follows:
+ *
+ * - fsAddressStart:   Starting cluster number of a file
+ * - fsAddressCurrent, upper dword: Current cluster number
+ * - fsAddressCurrent, lower dword: Current block number within the current cluster
+ */
+
 bool vfatDetect(Partition *part);
 
 int vfatGetFile(Partition *part, FileInfo *fileInfo, const char *path);

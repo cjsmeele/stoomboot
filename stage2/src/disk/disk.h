@@ -11,8 +11,8 @@
 #include "common.h"
 #include "fs/fs.h"
 
-#define DISK_MAX_DISKS               8
-#define DISK_MAX_PARTITIONS_PER_DISK 16
+#define DISK_MAX_DISKS               6
+#define DISK_MAX_PARTITIONS_PER_DISK 12
 #define DISK_MAX_BLOCK_SIZE          4096
 
 #define DISK_PART_SCAN_OK             (0)
@@ -29,8 +29,8 @@ typedef struct Partition Partition;
 struct Partition {
 	Disk             *disk;
 	FileSystemDriver *fsDriver; ///< NULL if no usable FS was detected.
-	uint64_t id; ///< Some FS' UUIDs may need to be trimmed to fit in this field.
-	char     label[16];
+	uint64_t fsId;
+	char     fsLabel[16];
 	uint16_t partitionNo;
 	uint64_t lbaStart;
 	uint64_t blockCount;
@@ -55,12 +55,26 @@ struct Disk {
 extern uint32_t diskCount;
 extern Disk     disks[];
 
+
 /**
- * \brief Get a pointer to the Disk structure for the boot disk.
+ * \brief Get a partition by its file system id.
  *
- * \return
+ * \param fsId a filesystem UUID (id length is implementation-dependent)
+ *
+ * \return a pointer to a Partition struct, or NULL if the partition could not
+ *         be found
  */
-Disk *getBootDisk();
+Partition *getPartitionByFsId(uint64_t fsId);
+
+/**
+ * \brief Get a partition by its file system label.
+ *
+ * \param fsLabel a filesystem / volume label
+ *
+ * \return a pointer to a Partition struct, or NULL if the partition could not
+ *         be found
+ */
+Partition *getPartitionByFsLabel(const char *fsLabel);
 
 /**
  * \brief Read blocks from a hard drive.

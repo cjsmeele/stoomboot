@@ -14,13 +14,6 @@
 uint32_t diskCount = 0;
 Disk     disks[DISK_MAX_DISKS];
 
-static Disk *bootDisk = NULL;
-
-Disk *getBootDisk() {
-	assert(bootDisk != NULL);
-	return bootDisk;
-}
-
 /**
  * \brief Drive parameters structure, as returned by int 13h AH=48h.
  */
@@ -62,6 +55,28 @@ typedef struct {
 	uint64_t destination;    ///< Flat 64-bit destination address.
 } __attribute__((packed)) DiskAddressPacket;
 
+
+Partition *getPartitionByFsId(uint64_t fsId) {
+	for (uint32_t i=0; i<diskCount; i++) {
+		for (uint32_t j=0; j<disks[i].partitionCount; j++) {
+			Partition *part = &disks[i].partitions[j];
+			if (part->fsDriver && part->fsId == fsId)
+				return part;
+		}
+	}
+	return NULL;
+}
+
+Partition *getPartitionByFsLabel(const char *fsLabel) {
+	for (uint32_t i=0; i<diskCount; i++) {
+		for (uint32_t j=0; j<disks[i].partitionCount; j++) {
+			Partition *part = &disks[i].partitions[j];
+			if (part->fsDriver && streq(part->fsLabel, fsLabel))
+				return part;
+		}
+	}
+	return NULL;
+}
 
 int diskRead(Disk *disk, uint64_t dest, uint64_t lba, uint64_t blockCount) {
 
@@ -288,7 +303,7 @@ int disksDiscover() {
 	printf("Found the following partitions:\n\n");
 
 	int ret = printf(
-		"       %15s  %15s %3s %1s %-10s %8s %12s\n",
+		"      %15s   %15s %3s %1s %-10s %8s %12s\n",
 		"LBA Start", "LBA End", "Id", "B", "Size", "FS", "Label"
 	);
 	for (int i=0; i<ret-1; i++)
@@ -315,7 +330,7 @@ int disksDiscover() {
 					? 0
 					: (uint32_t)part->blockCount / 1024 * 512 / 1024,
 				part->fsDriver ? part->fsDriver->name : "",
-				part->label
+				part->fsLabel
 			);
 
 			partitionsPrinted++;

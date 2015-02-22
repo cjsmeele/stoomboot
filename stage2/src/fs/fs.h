@@ -18,6 +18,11 @@ typedef struct Partition Partition;
 
 #define FS_MAX_FILE_NAME_LENGTH 63
 
+#define FS_SUCCESS         (0)
+#define FS_IO_ERROR       (-1)
+#define FS_INTERNAL_ERROR (-2)
+#define FS_FILE_NOT_FOUND (-3)
+
 typedef enum {
 	FILE_TYPE_REGULAR,
 	FILE_TYPE_DIRECTORY,
@@ -29,7 +34,8 @@ typedef enum {
  */
 typedef struct {
 	char     name[FS_MAX_FILE_NAME_LENGTH + 1];
-	uint64_t fsAddress; ///< An implementation dependent address.
+	uint64_t fsAddressStart;   ///< An implementation dependent address.
+	uint64_t fsAddressCurrent; ///< An implementation dependent address, used during reads.
 	uint64_t size;
 	FileType type;
 } FileInfo;
@@ -62,6 +68,7 @@ struct FileSystemDriver {
 	 * \return zero on success, non-zero on failure
 	 * \retval FS_SUCCESS
 	 * \retval FS_FILE_NOT_FOUND
+	 * \retval FS_INTERNAL_ERROR
 	 * \retval FS_IO_ERROR
 	 */
 	int (*getFile)(
@@ -83,6 +90,7 @@ struct FileSystemDriver {
 	 *
 	 * \return zero on success, non-zero on failure
 	 * \retval FS_SUCCESS
+	 * \retval FS_INTERNAL_ERROR
 	 * \retval FS_IO_ERROR
 	 */
 	int (*readFileBlock)(
@@ -98,6 +106,11 @@ struct FileSystemDriver {
 	 * \param files
 	 * \param offset amount of directory entries to skip
 	 * \param count
+	 *
+	 * \return zero on success, non-zero on failure
+	 * \retval FS_SUCCESS
+	 * \retval FS_INTERNAL_ERROR
+	 * \retval FS_IO_ERROR
 	 */
 	int (*readDir)(
 		Partition *partition, FileInfo *fileInfo,
