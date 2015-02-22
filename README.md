@@ -41,7 +41,7 @@ Feature / Component       | Status
 -- Protected mode switch  |
 *Kernel*                  |
 -- "Hello world"          |
--- ...
+-- ...                    |
 
 HOW TO RUN
 ----------
