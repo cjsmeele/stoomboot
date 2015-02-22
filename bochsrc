@@ -3,3 +3,7 @@ boot:        disk
 ata0:        enabled=1, ioaddr1=0x1f0, ioaddr2=0x3f0, irq=14
 ata0-master: type=disk, path="img/osdev-disk.img"
 clock:       sync=slowdown, time0=utc
+com1:        enabled=false
+com2:        enabled=false
+com3:        enabled=false
+com4:        enabled=false

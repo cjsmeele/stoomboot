@@ -28,7 +28,7 @@ typedef struct Partition Partition;
  */
 struct Partition {
 	Disk             *disk;
-	FileSystemDriver *fsDriver;
+	FileSystemDriver *fsDriver; ///< NULL if no usable FS was detected.
 	uint64_t id; ///< Some FS' UUIDs may need to be trimmed to fit in this field.
 	char     label[16];
 	uint16_t partitionNo;

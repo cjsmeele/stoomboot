@@ -112,7 +112,7 @@ int diskRead(Disk *disk, uint64_t dest, uint64_t lba, uint64_t blockCount) {
 		printf("warning: Disk I/O error: disk=%02xh, AH=%02xh\n", disk->biosId, errorCode);
 		printf(
 			"         lba: %#08x.%08x, block count %#08x.%08x\n",
-			(uint32_t)(lba >> 32), (uint32_t)lba,
+			(uint32_t)(lba        >> 32), (uint32_t)lba,
 			(uint32_t)(blockCount >> 32), (uint32_t)blockCount
 		);
 		return -1;
@@ -122,7 +122,11 @@ int diskRead(Disk *disk, uint64_t dest, uint64_t lba, uint64_t blockCount) {
 }
 
 int partRead(Partition *part, uint64_t dest, uint64_t relLba, uint64_t blockCount) {
-	if (relLba + blockCount > part->blockCount) {
+	if (
+			   relLba              >= part->blockCount
+			|| blockCount          >  part->blockCount
+			|| relLba + blockCount >  part->blockCount
+		) {
 		printf("warning: Tried to read outside of partition boundaries\n");
 		return -1;
 	}
@@ -190,7 +194,8 @@ typedef struct {
 } DiskScanner;
 
 /**
- * \brief Collection of partition table scanner functions for each supported partition table type.
+ * \brief Collection of partition table scanner functions for each supported
+ *        partition table type.
  */
 static const DiskScanner diskScanners[] = {
 	{ "dos-mbr", dosMbrScan },
@@ -254,6 +259,7 @@ int disksDiscover() {
 
 	printf("Scanning %u disk(s) out of %u\n", MIN(diskCount, DISK_MAX_DISKS), diskCount);
 
+	// Detect partitions and filesystems.
 	for (uint32_t i=0; i<MIN(diskCount, DISK_MAX_DISKS); i++) {
 		memset(&disks[i], 0, sizeof(Disk));
 
@@ -276,6 +282,8 @@ int disksDiscover() {
 			printf("warning: An error occurred while scanning disk %02xh\n", disks[i].biosId);
 		}
 	}
+
+	// Print detected partitions.
 
 	printf("Found the following partitions:\n\n");
 

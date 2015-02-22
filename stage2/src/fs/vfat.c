@@ -106,3 +106,23 @@ bool vfatDetect (Partition *part) {
 
 	return true;
 }
+
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
+
+int vfatGetFile(Partition *part, FileInfo *fileInfo, const char *path) {
+	panic("VFAT getFile() unimplemented.");
+	return 0;
+}
+
+int vfatReadFileBlock(Partition *part, FileInfo *fileInfo, uint8_t *buffer) {
+	panic("VFAT readFileBlock() unimplemented.");
+	return 0;
+}
+
+int vfatReadDir(Partition *part, FileInfo *fileInfo, FileInfo files[], size_t offset, size_t count) {
+	panic("VFAT readDir() unimplemented.");
+	return 0;
+}
+
+#pragma GCC diagnostic pop
