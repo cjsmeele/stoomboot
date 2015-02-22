@@ -7,13 +7,13 @@
  */
 #include "common.h"
 
-void halt() {
+inline void halt() {
 	asm volatile (
 		"hlt"
 	);
 }
 
-void hang() {
+inline void hang() {
 	for (;;)
 		asm volatile (
 			"cli\n"
@@ -191,6 +191,6 @@ int atoi(const char *buf) {
 	return (negative ? -num : num);
 }
 
-int abs(int num) {
+inline int abs(int num) {
 	return num < 0 ? -num : num;
 }
