@@ -21,6 +21,28 @@ void hang() {
 		);
 }
 
+void shutDown() {
+	// Blindly assume APM is supported.
+	asm volatile (
+		"int $0x15"
+		:
+		: "a" (0x5307), // APM: Connect interface.
+		  "b" (0x0000)  // APM BIOS power device id.
+		: "cc"
+	);
+	asm volatile (
+		"int $0x15"
+		:
+		: "a" (0x5307), // APM: Set power state.
+		  "b" (0x0001), // All devices.
+		  "c" (0x0003)  // Off.
+		: "cc"
+	);
+
+	// Hang in case the APM call failed.
+	hang();
+}
+
 void *memset(void *mem, uint8_t c, size_t length) {
 	if (length)
 		asm volatile (
@@ -137,10 +159,10 @@ void toUpperCase(char *str) {
 }
 
 static uint32_t powU(uint32_t x, uint32_t y){
-	if(!y)
+	if (!y)
 		return 1;
 	uint32_t z = x;
-	for(uint32_t i=1; i<y; i++)
+	for (uint32_t i=1; i<y; i++)
 		z *= x;
 	return z;
 }

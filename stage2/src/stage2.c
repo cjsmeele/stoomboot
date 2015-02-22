@@ -17,6 +17,6 @@ void stage2Main(uint32_t bootDiskNo) {
 		panic("No usable disk drives detected.");
 	}
 
-	printf("\nHalting.\n");
-	hang();
+	printf("\nShutting down.\n");
+	shutDown();
 }

@@ -32,6 +32,11 @@ void halt();
 void hang() __attribute__((noreturn));
 
 /**
+ * \brief Use a BIOS interrupt to shut down the computer.
+ */
+void shutDown() __attribute__((noreturn));
+
+/**
  * \brief Set length bytes starting at mem to c.
  *
  * \param mem
