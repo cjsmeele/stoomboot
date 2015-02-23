@@ -106,6 +106,7 @@ bin: $(BINFILE)
 
 $(BINFILE): $(OBJFILES) $(LDFILE)
 	$(E) "  LD   $@"
+	$(Q)mkdir -p `dirname $@`
 	$(Q)$(LD) $(LDFLAGS) -T$(LDFILE) -o $@ $(OBJFILES)
 
 $(DEPDIR)/%.d: $(SRCDIR)/%.c
