@@ -97,7 +97,7 @@ int printf(const char *format, ...) __attribute__((format(printf,1,2)));
  *
  * \return true if a key was read and stored in the key parameter
  */
-bool     getKey(Key *key, bool wait);
-uint16_t getLine(char *line, size_t size);
+bool   getKey(Key *key, bool wait);
+size_t getLine(char *line, size_t size);
 
 #endif /* _CONSOLE_H */

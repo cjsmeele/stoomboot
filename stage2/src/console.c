@@ -361,7 +361,8 @@ bool getKey(Key *key, bool wait) {
 		if (!serialDeviceInitialized)
 			initCom0();
 
-		if (!wait) {
+		// Check if input is available before trying to read from the serial port.
+		do {
 			uint16_t status = 0x0300;
 
 			// Get serial port status.
@@ -372,11 +373,15 @@ bool getKey(Key *key, bool wait) {
 				: "cc"
 			);
 
-			if (!(status & 1 << 8)) {
-				// Bit 8 is 0: No data avaiable.
-				return false;
+			if (status & 1 << 8) {
+				// Bit 8 is 1: Data available for reading.
+				break;
+			} else {
+				if (!wait)
+					return false;
+				asm volatile ("hlt");
 			}
-		}
+		} while (true);
 
 		uint16_t ret = 0x0200;
 
@@ -393,7 +398,8 @@ bool getKey(Key *key, bool wait) {
 	} else {
 #endif /* CONFIG_CONSOLE_SERIAL_IO */
 
-	if (!wait) {
+	// Check if input is available before trying to read from the keyboard buffer.
+	do {
 		uint16_t ready = 0;
 		asm volatile (
 			"int $0x16\n"
@@ -406,9 +412,14 @@ bool getKey(Key *key, bool wait) {
 			: "cc"
 		);
 
-		if (!ready)
-			return false;
-	}
+		if (ready) {
+			break;
+		} else {
+			if (!wait)
+				return false;
+			asm volatile ("hlt");
+		}
+	} while (true);
 
 	uint16_t keyInfo = 0;
 	asm volatile (
@@ -428,7 +439,7 @@ bool getKey(Key *key, bool wait) {
 	return true;
 }
 
-uint16_t getLine(char *line, size_t size) {
+size_t getLine(char *line, size_t size) {
 	size_t i = 0;
 	Key key;
 	while (i < size - 1) {

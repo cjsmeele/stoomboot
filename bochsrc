@@ -1,8 +1,10 @@
 #error:       action=fatal
 boot:        disk
+cpu:         ips=30000000
 ata0:        enabled=1, ioaddr1=0x1f0, ioaddr2=0x3f0, irq=14
 ata0-master: type=disk, path="img/havik-disk.img"
 clock:       sync=slowdown, time0=utc
+vga:         extension=vbe, update_freq=60
 com1:        enabled=false
 com2:        enabled=false
 com3:        enabled=false
