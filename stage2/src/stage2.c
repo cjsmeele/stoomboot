@@ -8,6 +8,7 @@
 #include "stage2.h"
 #include "console.h"
 #include "disk/disk.h"
+#include "shell.h"
 #include "dump.h"
 
 
@@ -73,6 +74,8 @@ void stage2Main(uint32_t bootDiskNo, uint64_t loaderFsId) {
 		);
 		panic("No bootloader file system found");
 	}
+
+	shell();
 
 #if CONFIG_CONSOLE_SERIAL_IO
 	printf("\nShutting down.\n");

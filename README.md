@@ -34,7 +34,7 @@ Feature / Component       | Status
 -- GPT part-table parsing |
 -- FAT32 driver           | Done
 -- Config file support    | In progress
--- Command-line           |
+-- Command-line           | In progress
 -- Memory detection       |
 -- ELF loading            |
 -- Video mode setting     |
