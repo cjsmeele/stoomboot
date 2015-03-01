@@ -317,7 +317,10 @@ int printf(const char *format, ...) {
 							length += printfHex(num, &flags, width);
 
 					} else if (c == 's') {
-						char *str = (char*)va_arg(vaList, char*);
+						const char *str = (char*)va_arg(vaList, char*);
+						if (!str)
+							str = "<null>";
+
 						size_t slen = strlen(str);
 						if (slen < width) {
 							if (flags.leftAdjusted) {
