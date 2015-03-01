@@ -82,7 +82,6 @@ void puts(const char *str) {
 		memset(&flags, 0, sizeof(flags)); \
 		width    = 0; \
 		widthBufferIndex = 0; \
-		lengthModifier   = 0; \
 	} while (0)
 
 typedef struct {
@@ -93,6 +92,7 @@ typedef struct {
 	bool groupDigits     : 1;
 	bool alwaysPrintSign : 1;
 	bool padSign         : 1;
+	uint8_t _padding     : 1;
 } PrintfFlags;
 
 static size_t printfDecimal(uint32_t num, bool sign, PrintfFlags *flags, size_t width) {
@@ -212,6 +212,7 @@ int printf(const char *format, ...) {
 
 	va_list vaList;
 	va_start(vaList, format);
+
 	// Format state {
 
 	PrintfFlags flags;
@@ -221,7 +222,6 @@ int printf(const char *format, ...) {
 	size_t width  = 0; ///< Minimum formatted text length.
 	static char widthBuffer[9] = { };
 	size_t widthBufferIndex    = 0;
-	uint8_t lengthModifier     = 0; ///< Amount of bytes as the size of the argument.
 
 	// }
 
@@ -266,14 +266,6 @@ int printf(const char *format, ...) {
 				} else if (c == '\'') {
 					flags.groupDigits = true;
 				// }
-				// Length modifiers {
-				} else if (c == 'h') {
-					lengthModifier = 2;
-				} else if (c == 'H') {
-					lengthModifier = 1;
-				} else if (c == 'l') {
-					lengthModifier = 8;
-				// }
 				// Conversion specifiers {
 				} else {
 					bool isConversion = false;
@@ -292,24 +284,14 @@ int printf(const char *format, ...) {
 
 					if (c == 'd') {
 						int32_t num;
-						if (lengthModifier == 1)
-							num = (int8_t) va_arg(vaList, int);
-						else if (lengthModifier == 2)
-							num = (int16_t)va_arg(vaList, int);
-						else
-							num = (int32_t)va_arg(vaList, int);
+						num = (int32_t)va_arg(vaList, int);
 
 						// Unfortunately, we cannot div / mod 64 bit numbers.
 						length += printfDecimal(num, true, &flags, width);
 
 					} else if (c == 'u' || c == 'x') {
 						uint32_t num;
-						if (lengthModifier == 1)
-							num = (uint8_t) va_arg(vaList, unsigned int);
-						else if (lengthModifier == 2)
-							num = (uint16_t)va_arg(vaList, unsigned int);
-						else
-							num = (uint32_t)va_arg(vaList, unsigned int);
+						num = (uint32_t)va_arg(vaList, unsigned int);
 
 						if (c == 'u')
 							length += printfDecimal(num, false, &flags, width);

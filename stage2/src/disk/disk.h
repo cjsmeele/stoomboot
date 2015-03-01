@@ -11,8 +11,8 @@
 #include "common.h"
 #include "fs/fs.h"
 
-#define DISK_MAX_DISKS               6
-#define DISK_MAX_PARTITIONS_PER_DISK 12
+#define DISK_MAX_DISKS               4
+#define DISK_MAX_PARTITIONS_PER_DISK 8
 #define DISK_MAX_BLOCK_SIZE          4096
 
 #define DISK_PART_SCAN_OK             (0)
@@ -37,20 +37,20 @@ struct Partition {
 	uint8_t  type;
 	bool     active;
 	bool     fsInitialized; ///< Whether FS code has initialized Partition fields (currently only applies to 'label' and 'id').
-};
+} __attribute__((packed));
 
 /**
  * \brief Hard disk.
  */
 struct Disk {
-	bool     available; ///< Whether we can read from this disk.
 	uint16_t diskNo;    ///< 0, 1 ...
+	bool     available; ///< Whether we can read from this disk.
 	uint8_t  biosId;    ///< 80h, 81h, ... (used for int13h).
 	uint16_t blockSize; ///< Usually 512, may be 4096.
-	uint64_t blockCount;
 	uint16_t partitionCount;
+	uint64_t blockCount;
 	Partition partitions[DISK_MAX_PARTITIONS_PER_DISK];
-};
+} __attribute__((packed));
 
 extern uint32_t diskCount;
 extern Disk     disks[];

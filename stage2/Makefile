@@ -70,7 +70,8 @@ CWARNINGS := \
 	-Wwrite-strings \
 	-Wmissing-declarations \
 	-Wno-long-long \
-	-Wuninitialized
+	-Wuninitialized \
+	-Wpadded
 
 ASFLAGS := -f elf32
 CFLAGS  := \

@@ -65,7 +65,6 @@ typedef struct {
  */
 typedef struct {
 	Partition *partition;
-	uint8_t  clusterSize;
 	uint32_t fatStart; ///< In blocks.
 	uint32_t fatSize;  ///< In blocks.
 	uint32_t fatCount;
@@ -77,11 +76,11 @@ typedef struct {
 	uint8_t  currentFatBlock[DISK_MAX_BLOCK_SIZE];
 	uint32_t currentClusterBlockNo; ///< Block number within the current cluster.
 
+	uint8_t  clusterSize;
+
 	bool endOfCluster;
 
-	// Add here any BPB field that may be necessary for any FS call.
-
-} VfatPartData;
+} __attribute__((packed)) VfatPartData;
 
 /**
  * \brief FAT directory entry structure.
