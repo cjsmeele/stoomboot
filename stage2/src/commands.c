@@ -16,6 +16,12 @@
 
 Command commands[] = {
 	CMD_INCLUDE(
+		cls,
+ "usage: cls\
+\nClears the screen.\
+\n"
+	),
+	CMD_INCLUDE(
 		halt,
  "usage: halt\
 \nShuts down the computer.\
@@ -47,6 +53,15 @@ Command commands[] = {
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 
+CMD_DEF(cls) {
+	if (!interactive)
+		return 1;
+
+	cls();
+
+	return 0;
+}
+
 CMD_DEF(halt) {
 	if (!interactive)
 		return 1;
@@ -68,6 +83,9 @@ CMD_DEF(help) {
 		return 1;
 
 	if (argc == 1) {
+		printf("The following commands are supported by the bootloader:\n");
+		printf("Type `help [FUNCTION]' for information on that function.\n\n");
+
 		for (size_t i=0; i<ELEMS(commands); i+=5) {
 			for (size_t j=0; j<MIN(ELEMS(commands) - i, 5); j++)
 				printf("%15s", commands[i+j].name);

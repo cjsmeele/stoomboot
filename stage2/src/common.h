@@ -12,10 +12,10 @@
 #define asm __asm__
 #endif
 
-#define MIN(a, b) (a < b ? a : b)
-#define MAX(a, b) (a > b ? a : b)
-#define CLAMP(n, min, max) (MIN(MAX(n, min), max))
-#define ELEMS(a) (sizeof(a) / sizeof(a[0]))
+#define MIN(a, b) ((a) < (b) ? (a) : (b))
+#define MAX(a, b) ((a) > (b) ? (a) : (b))
+#define CLAMP(n, min, max) (MIN(MAX((n), (min)), (max)))
+#define ELEMS(a) (sizeof(a) / sizeof((a)[0]))
 
 #include "types.h"
 #include "panic.h"

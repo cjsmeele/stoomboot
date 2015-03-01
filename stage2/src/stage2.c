@@ -14,7 +14,9 @@
 
 void stage2Main(uint32_t bootDiskNo, uint64_t loaderFsId) {
 
-	printf("\nWelcome to the Havik bootloader.\n\n");
+	initConsole();
+
+	printf("\n Welcome to the Havik bootloader.\n\n");
 
 	if (bootDiskNo != 0x80)
 		printf("warning: Boot disk (%02xh) is not 80h\n", bootDiskNo);

@@ -8,6 +8,11 @@
 #include "console.h"
 #include <stdarg.h>
 
+uint8_t consolePage      = 0;
+uint8_t consoleWidth     = 80;
+uint8_t consoleHeight    = 25;
+uint8_t consoleAttribute = 0x00;
+
 #if CONFIG_CONSOLE_SERIAL_IO
 #include "bda.h"
 
@@ -49,7 +54,11 @@ static void doPutch(char ch) {
 		"int $0x10"
 		:
 		: "a" (0x0e << 8 | ch),
-		  "b" (0x07)
+		  "b" (consolePage << 8 | (
+			  consoleAttribute
+			? consoleAttribute // Colors don't actually work in text-mode with this int call.
+			: 0x07
+		  ))
 		: "cc"
 	);
 #if CONFIG_CONSOLE_SERIAL_IO
@@ -379,7 +388,7 @@ bool getKey(Key *key, bool wait) {
 			} else {
 				if (!wait)
 					return false;
-				asm volatile ("hlt");
+				halt();
 			}
 		} while (true);
 
@@ -417,7 +426,7 @@ bool getKey(Key *key, bool wait) {
 		} else {
 			if (!wait)
 				return false;
-			asm volatile ("hlt");
+			halt();
 		}
 	} while (true);
 
@@ -471,4 +480,81 @@ size_t getLine(char *line, size_t size) {
 	line[i] = 0;
 
 	return i;
+}
+
+void setCursorPosition(uint8_t x, uint8_t y) {
+#if CONFIG_CONSOLE_SERIAL_IO
+	if (isSerialIoAvailable()) {
+		printf("\e[%u;%uf", y, x);
+	} else {
+#endif /* CONFIG_CONSOLE_SERIAL_IO */
+
+	asm volatile (
+		"int $0x10"
+		:
+		: "a" (0x0200),
+		  "b" (consolePage << 8),
+		  "d" (MIN(y, consoleHeight-1) << 8 | MIN(x, consoleWidth-1))
+		: "cc"
+	);
+
+#if CONFIG_CONSOLE_SERIAL_IO
+	}
+#endif /* CONFIG_CONSOLE_SERIAL_IO */
+}
+
+void cls() {
+#if CONFIG_CONSOLE_SERIAL_IO
+	if (isSerialIoAvailable()) {
+		// This should clear most terminals.
+		puts("\e[2J");
+	} else {
+#endif /* CONFIG_CONSOLE_SERIAL_IO */
+
+	asm volatile (
+		"int $0x10"
+		:
+		: "a" (0x0600),
+		  "b" (consoleAttribute << 8), // Attribute.
+		  "c" (0x0000),
+		  "d" (25 << 8 | 80)
+		: "cc"
+	);
+
+#if CONFIG_CONSOLE_SERIAL_IO
+	}
+#endif /* CONFIG_CONSOLE_SERIAL_IO */
+
+	setCursorPosition(0, 0);
+}
+
+uint8_t getVideoPageNumber() {
+	uint16_t pageNumber;
+
+	asm volatile (
+		"int $0x10"
+		: "=b" (pageNumber)
+		: "a"  (0x0f00)
+		: "cc"
+	);
+
+	return pageNumber >> 8;
+}
+
+void setVideoMode(uint8_t mode) {
+	asm volatile (
+		"int $0x10"
+		:
+		: "a" (mode & 0x07)
+		: "cc"
+	);
+}
+
+void initConsole() {
+	setVideoMode(3); // 80x25, with colors.
+	consolePage      = getVideoPageNumber();
+	consoleWidth     = 80;
+	consoleHeight    = 25;
+	consoleAttribute = 0x07;
+	cls();
 }

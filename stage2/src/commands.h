@@ -11,7 +11,7 @@
 #include "common.h"
 
 #define CMD_FUNCTION(name) _command_##name
-#define CMD_DECL(name) int _command_##name(int argc, char *argv[], bool interactive)
+#define CMD_DECL(name) int CMD_FUNCTION(name)(int argc, char *argv[], bool interactive)
 #define CMD_DEF(name)  CMD_DECL(name)
 
 /**
@@ -36,6 +36,7 @@ typedef struct {
 
 extern Command commands[];
 
+CMD_DECL(cls);
 CMD_DECL(halt);
 CMD_DECL(hello);
 CMD_DECL(help);

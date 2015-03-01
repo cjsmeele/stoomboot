@@ -23,9 +23,6 @@ void shell() {
 		memset(cmdLine, 0, ELEMS(cmdLine));
 		prompt(SHELL_QUERY_STRING, cmdLine, ELEMS(cmdLine)-1);
 
-		if (streq(cmdLine, "exit"))
-			break;
-
 		int argCount = splitCommandLine(argList, SHELL_MAX_ARG_COUNT, cmdLine);
 
 		if (argCount) {

@@ -17,6 +17,11 @@
 #define CONFIG_CONSOLE_SERIAL_IO 0
 #endif /* CONFIG_CONSOLE_SERIAL_IO */
 
+extern uint8_t consolePage;
+extern uint8_t consoleWidth;
+extern uint8_t consoleHeight;
+extern uint8_t consoleAttribute; ///< (0) if not using colors.
+
 /**
  * \brief A keyboard key.
  */
@@ -99,5 +104,35 @@ int printf(const char *format, ...) __attribute__((format(printf,1,2)));
  */
 bool   getKey(Key *key, bool wait);
 size_t getLine(char *line, size_t size);
+
+/**
+ * \brief Move the cursor.
+ *
+ * \param x
+ * \param y
+ */
+void setCursorPosition(uint8_t x, uint8_t y);
+
+/**
+ * \brief Clear the text-mode screen.
+ */
+void cls();
+
+/**
+ * \brief Get the current page number.
+ */
+uint8_t getVideoPageNumber();
+
+/**
+ * \brief Set the video mode.
+ *
+ * \param mode
+ */
+void setVideoMode(uint8_t mode);
+
+/**
+ * \brief Set up the console.
+ */
+void initConsole();
 
 #endif /* _CONSOLE_H */
