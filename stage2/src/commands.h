@@ -41,6 +41,8 @@ CMD_DECL(halt);
 CMD_DECL(hello);
 CMD_DECL(help);
 CMD_DECL(hang);
+CMD_DECL(set);
+CMD_DECL(unset);
 
 /**
  * \brief Get a command from commands[] by its name.
