@@ -8,11 +8,13 @@
 #include "config.h"
 #include "console.h"
 
-static char optionMessageBuffer[CONFIG_STRING_VALUE_BUFFER_SIZE] = { };
+static char optionKernelBuffer[CONFIG_STRING_VALUE_BUFFER_SIZE] = { };
+static char optionInitrdBuffer[CONFIG_STRING_VALUE_BUFFER_SIZE] = { };
 
 ConfigOption configOptions[] = {
-	{ "timeout", CONFIG_OPTION_TYPE_INT32,  .value.valInt32 = -1                  },
-	{ "message", CONFIG_OPTION_TYPE_STRING, .value.valStr   = optionMessageBuffer },
+	{ "timeout", CONFIG_OPTION_TYPE_INT32,  .value.valInt32 = -1                 },
+	{ "kernel",  CONFIG_OPTION_TYPE_STRING, .value.valStr   = optionKernelBuffer },
+	{ "initrd",  CONFIG_OPTION_TYPE_STRING, .value.valStr   = optionInitrdBuffer },
 };
 const size_t configOptionCount = ELEMS(configOptions);
 
@@ -28,12 +30,8 @@ ConfigOption *getConfigOption(const char *key) {
 void setConfigOption(const char *key, ConfigOptionValue value) {
 	ConfigOption *option = getConfigOption(key);
 	if (option) {
-		       if (option->type == CONFIG_OPTION_TYPE_UINT64) {
-			option->value.valUInt64 = value.valUInt64;
-		} else if (option->type == CONFIG_OPTION_TYPE_INT32) {
+		       if (option->type == CONFIG_OPTION_TYPE_INT32) {
 			option->value.valInt32 = value.valInt32;
-		} else if (option->type == CONFIG_OPTION_TYPE_UINT32) {
-			option->value.valUInt32 = value.valUInt32;
 		} else if (option->type == CONFIG_OPTION_TYPE_STRING) {
 			if (value.valStr) {
 				strncpy(option->value.valStr, value.valStr, CONFIG_STRING_VALUE_BUFFER_SIZE-1);

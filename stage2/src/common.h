@@ -100,6 +100,17 @@ char *strchr(const char *str, char ch);
 bool streq(const char *str1, const char *str2);
 
 /**
+ * \brief Check if the first `length` chars of the given strings are equal.
+ *
+ * \param str1
+ * \param str2
+ * \param length
+ *
+ * \return
+ */
+bool strneq(const char *str1, const char *str2, size_t length);
+
+/**
  * \brief Copy a string.
  *
  * \param dest

@@ -9,6 +9,7 @@
 #include "console.h"
 #include "config.h"
 #include "disk/disk.h"
+#include "boot.h"
 
 #define CMD_INCLUDE(name, helpText) { \
 		#name, \
@@ -17,6 +18,12 @@
 	}
 
 Command commands[] = {
+	CMD_INCLUDE(
+		boot,
+ "usage: boot\
+\nExecutes the selected boot option.\
+\n"
+	),
 	CMD_INCLUDE(
 		cls,
  "usage: cls\
@@ -73,6 +80,43 @@ Command commands[] = {
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-parameter"
+
+CMD_DEF(boot) {
+	ConfigOption *kernelOption = getConfigOption("kernel");
+	assert(kernelOption != NULL && kernelOption->type == CONFIG_OPTION_TYPE_STRING);
+	ConfigOption *initrdOption = getConfigOption("initrd");
+	assert(initrdOption != NULL && initrdOption->type == CONFIG_OPTION_TYPE_STRING);
+
+	if (strlen(kernelOption->value.valStr)) {
+		BootOption bootOption;
+		memset(&bootOption, 0, sizeof(BootOption));
+		bool haveInitrd = false;
+
+		if (parseBootPathString(&bootOption.kernel, kernelOption->value.valStr))
+			return 1;
+		if (strlen(initrdOption->value.valStr)) {
+			if (parseBootPathString(&bootOption.initrd, initrdOption->value.valStr))
+				return 1;
+			haveInitrd = true;
+		}
+
+		boot(&bootOption); // This call should not return.
+
+		printf("Boot failure. Please try a different boot option.\n");
+		return 1;
+
+	} else if(interactive) {
+		printf("Please set the `kernel' option first. For example:\n");
+		printf("  set kernel                 hd0:0:/boot/kernel.elf\n");
+		printf("  set kernel FSID=0123456789abcdef:/boot/kernel.elf *\n");
+		printf("  set kernel          FSLABEL=BOOT:/boot/kernel.elf *\n\n");
+		printf("* not yet supported\n");
+		return 1;
+	} else {
+		printf("error: `boot' without a kernel option set\n");
+		return 1;
+	}
+}
 
 CMD_DEF(cls) {
 	if (!interactive)
@@ -218,18 +262,8 @@ static void printConfigOption(ConfigOption *option) {
 	printf("%s = ", option->key);
 
 	switch (option->type) {
-	case CONFIG_OPTION_TYPE_UINT64:
-		printf(
-			"%#08x.%08x",
-			(uint32_t)(option->value.valUInt64 >> 32),
-			(uint32_t)option->value.valUInt64
-		);
-		break;
 	case CONFIG_OPTION_TYPE_INT32:
 		printf("%d", option->value.valInt32);
-		break;
-	case CONFIG_OPTION_TYPE_UINT32:
-		printf("%u", option->value.valUInt32);
 		break;
 	case CONFIG_OPTION_TYPE_STRING:
 		printf("'%s'", option->value.valStr);
@@ -259,15 +293,8 @@ CMD_DEF(set) {
 		if (option) {
 			ConfigOptionValue value;
 			switch (option->type) {
-			case CONFIG_OPTION_TYPE_UINT64:
-				/// @todo FIXME: 64 bit numbers are truncated.
-				value.valUInt64 = atoi(argv[2]);
-				break;
 			case CONFIG_OPTION_TYPE_INT32:
 				value.valInt32 = atoi(argv[2]);
-				break;
-			case CONFIG_OPTION_TYPE_UINT32:
-				value.valUInt32 = atoi(argv[2]);
 				break;
 			case CONFIG_OPTION_TYPE_STRING:
 				value.valStr = argv[2];

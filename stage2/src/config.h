@@ -13,17 +13,13 @@
 #define CONFIG_STRING_VALUE_BUFFER_SIZE 128
 
 typedef enum {
-	CONFIG_OPTION_TYPE_UINT64,
 	CONFIG_OPTION_TYPE_INT32,
-	CONFIG_OPTION_TYPE_UINT32,
 	CONFIG_OPTION_TYPE_STRING,
 } ConfigOptionType;
 
 typedef union {
 	char    *valStr;
-	uint64_t valUInt64;
 	 int32_t valInt32;
-	uint32_t valUInt32;
 } ConfigOptionValue;
 
 typedef struct {

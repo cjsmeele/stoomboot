@@ -118,8 +118,17 @@ bool streq(const char *str1, const char *str2) {
 		if (*str1++ != *str2++)
 			return false;
 	}
-
 	return *str1 == *str2;
+}
+
+bool strneq(const char *str1, const char *str2, size_t length) {
+	for (size_t i=0; i<length; i++) {
+		if (*str1 != *str2)
+			return false;
+		if (!*str1++ || !*str2++)
+			return true;
+	}
+	return true;
 }
 
 char *strncpy(char *dest, const char *src, size_t length) {
