@@ -226,7 +226,7 @@ static const DiskScanner diskScanners[] = {
  */
 static int diskScan(Disk *disk) {
 
-	printf("Scanning disk %02xh\n", disk->biosId);
+	//printf("Scanning disk %02xh\n", disk->biosId);
 
 	if (diskGetParams(disk))
 		// Something's not right with the drive parameters, drop the disk.
@@ -235,7 +235,7 @@ static int diskScan(Disk *disk) {
 	int ret = DISK_PART_SCAN_ERR_TRY_OTHER;
 
 	for (size_t i=0; i<ELEMS(diskScanners); i++) {
-		printf("-> scanning partition table type '%s'\n", diskScanners[i].name);
+		//printf("-> scanning partition table type '%s'\n", diskScanners[i].name);
 		ret = diskScanners[i].scannerFunc(disk, 0, disk->blockCount);
 		if (ret == DISK_PART_SCAN_OK) {
 			/// @todo Check for GPT partition, etc.
@@ -272,7 +272,10 @@ int disksDiscover() {
 	diskCount = bda->hdCount;
 	uint32_t availableDisks = 0;
 
-	printf("Scanning %u disk(s) out of %u\n", MIN(diskCount, DISK_MAX_DISKS), diskCount);
+	if (diskCount > DISK_MAX_DISKS)
+		printf("Scanning %u disk(s) out of %u\n", MIN(diskCount, DISK_MAX_DISKS), diskCount);
+
+	diskCount = MIN(diskCount, DISK_MAX_DISKS);
 
 	// Detect partitions and filesystems.
 	for (uint32_t i=0; i<MIN(diskCount, DISK_MAX_DISKS); i++) {
@@ -297,48 +300,6 @@ int disksDiscover() {
 			printf("warning: An error occurred while scanning disk %02xh\n", disks[i].biosId);
 		}
 	}
-
-	// Print detected partitions.
-
-	printf("Found the following partitions:\n\n");
-
-	int ret = printf(
-		"      %15s   %15s %3s %1s %-10s %8s %12s\n",
-		"LBA Start", "LBA End", "Id", "B", "Size", "FS", "Label"
-	);
-	for (int i=0; i<ret-1; i++)
-		putch('-');
-	putch('\n');
-
-	int partitionsPrinted = 0;
-
-	for (uint32_t i=0; i<MIN(diskCount, DISK_MAX_DISKS); i++) {
-		Disk *disk = &disks[i];
-		if (!disk->available)
-			continue;
-
-		for (uint32_t j=0; j<MIN(disk->partitionCount, DISK_MAX_PARTITIONS_PER_DISK); j++) {
-			Partition *part = &disk->partitions[j];
-
-			printf("hd%u:%u %#04x.%08x - %#04x.%08x %02xh %c %'9uM %8s %12s\n",
-				disk->diskNo, part->partitionNo,
-				(uint32_t)(part->lbaStart >> 32), (uint32_t)part->lbaStart,
-				(uint32_t)((part->lbaStart + part->blockCount) >> 32),
-				(uint32_t)(part->lbaStart + part->blockCount),
-				part->type, part->active ? '*' : ' ',
-				part->blockCount >> 32
-					? 0
-					: (uint32_t)part->blockCount / 1024 * 512 / 1024,
-				part->fsDriver ? part->fsDriver->name : "",
-				part->fsLabel
-			);
-
-			partitionsPrinted++;
-		}
-	}
-
-	if (!partitionsPrinted)
-		printf("(none)\n");
 
 	return availableDisks;
 }

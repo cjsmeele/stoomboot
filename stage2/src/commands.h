@@ -37,6 +37,7 @@ typedef struct {
 extern Command commands[];
 
 CMD_DECL(cls);
+CMD_DECL(disk_info);
 CMD_DECL(halt);
 CMD_DECL(hello);
 CMD_DECL(help);

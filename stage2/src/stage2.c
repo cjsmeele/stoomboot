@@ -16,17 +16,11 @@ void stage2Main(uint32_t bootDiskNo, uint64_t loaderFsId) {
 
 	initConsole();
 
-	printf("\n Welcome to the Havik bootloader.\n\n");
+	printf("\n  Welcome to the Havik bootloader.\n\n");
 
-	if (bootDiskNo != 0x80)
-		printf("warning: Boot disk (%02xh) is not 80h\n", bootDiskNo);
-
-	if (disksDiscover() <= 0) {
+	if (disksDiscover() <= 0)
 		// We did not detect any usable disks, abort.
 		panic("No usable disk drives detected.");
-	}
-
-	putch('\n');
 
 	Partition *loaderPart = getPartitionByFsId(loaderFsId);
 
@@ -40,6 +34,8 @@ void stage2Main(uint32_t bootDiskNo, uint64_t loaderFsId) {
 			(uint32_t)loaderPart->fsId,
 			loaderPart->fsLabel
 		);
+		if (loaderPart->disk->diskNo != (bootDiskNo & 0x7f))
+			printf("warning: Loader filesystem is on a different disk than stage2\n");
 
 		FileInfo fileInfo;
 		memset(&fileInfo, 0, sizeof(FileInfo));
@@ -77,6 +73,7 @@ void stage2Main(uint32_t bootDiskNo, uint64_t loaderFsId) {
 		panic("No bootloader file system found");
 	}
 
+	putch('\n');
 	shell();
 
 #if CONFIG_CONSOLE_SERIAL_IO

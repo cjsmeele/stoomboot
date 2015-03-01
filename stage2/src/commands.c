@@ -8,6 +8,7 @@
 #include "commands.h"
 #include "console.h"
 #include "config.h"
+#include "disk/disk.h"
 
 #define CMD_INCLUDE(name, helpText) { \
 		#name, \
@@ -22,6 +23,13 @@ Command commands[] = {
 \nClears the screen.\
 \n"
 	),
+	{
+		"disk-info",
+ "usage: disk-info [DISK_NO]\
+\nPrints information about the given disk number.\
+\n",
+		CMD_FUNCTION(disk_info)
+	},
 	CMD_INCLUDE(
 		halt,
  "usage: halt\
@@ -75,6 +83,83 @@ CMD_DEF(cls) {
 	return 0;
 }
 
+static void printDiskInfo(Disk *disk) {
+	if (!disk->available) {
+		printf("Disk hd%u is unavailable, possibly due to I/O errors.\n", disk->diskNo);
+		return;
+	}
+
+	if (disk->partitionCount) {
+		printf("Disk hd%u contains the following partitions:\n\n", disk->diskNo);
+		int ret = printf(
+			"      %15s   %15s %3s %1s %-10s %8s %12s\n",
+			"LBA Start", "LBA End", "Id", "B", "Size", "FS", "Label"
+		);
+		for (int i=0; i<ret-1; i++)
+			putch('-');
+		putch('\n');
+
+		for (uint32_t i=0; i<MIN(disk->partitionCount, DISK_MAX_PARTITIONS_PER_DISK); i++) {
+			Partition *part = &disk->partitions[i];
+
+			printf("hd%u:%u %#04x.%08x - %#04x.%08x %02xh %c %'9uM %8s %12s\n",
+				disk->diskNo, part->partitionNo,
+				(uint32_t)(part->lbaStart >> 32), (uint32_t)part->lbaStart,
+				(uint32_t)((part->lbaStart + part->blockCount) >> 32),
+				(uint32_t)(part->lbaStart + part->blockCount),
+				part->type, part->active ? '*' : ' ',
+				part->blockCount >> 32
+					? 0
+					: (uint32_t)part->blockCount / 1024 * 512 / 1024,
+				part->fsDriver ? part->fsDriver->name : "",
+				part->fsLabel
+			);
+		}
+		putch('\n');
+	} else {
+		printf("No partitions were found on disk hd%u\n\n", disk->diskNo);
+	}
+
+	if (disk->blockCount >> 32) {
+		printf(
+			"Disk hd%u has more than %'uM blocks of %'u bytes,\ntotalling more than %'u GiB.\n",
+			disk->diskNo,
+			0xffffffff / 1024 / 1024, disk->blockSize,
+			0xffffffff / 1024 / 1024 * disk->blockSize / 1024
+		);
+	} else {
+		printf(
+			"Disk hd%u has %'u blocks of %u Bytes, totalling %'u MiB\n",
+			disk->diskNo,
+			(uint32_t)disk->blockCount,
+			disk->blockSize,
+			((uint32_t)disk->blockCount) / 1024 * disk->blockSize / 1024
+		);
+	}
+}
+
+CMD_DEF(disk_info) {
+	if (!interactive)
+		return 1;
+
+	if (argc == 1) {
+		printf("A total of %u disks were detected.\n", diskCount);
+		return 0;
+	} else if (argc == 2) {
+		uint32_t diskNo = atoi(argv[1]);
+		if (diskNo < diskCount) {
+			printDiskInfo(&disks[diskNo]);
+			return 0;
+		} else {
+			printf("Disk number out of range\n");
+			return 1;
+		}
+	} else {
+		printf("usage: disk-info [DISK_NO]\n");
+		return 1;
+	}
+}
+
 CMD_DEF(halt) {
 	if (!interactive)
 		return 1;
@@ -96,9 +181,9 @@ CMD_DEF(help) {
 		return 1;
 
 	if (argc == 1) {
-		printf("The following commands are supported by the bootloader:\n");
 		printf("Type `help [FUNCTION]' for information on that function.\n");
-		printf("Spaces in parameters must be escaped with '\\' (quoting is not allowed).\n\n");
+		printf("Spaces in parameters must be escaped with `\\' (quoting is not allowed).\n");
+		printf("The following commands are supported by the bootloader:\n\n");
 
 		for (size_t i=0; i<ELEMS(commands); i+=5) {
 			for (size_t j=0; j<MIN(ELEMS(commands) - i, 5); j++)
