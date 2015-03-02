@@ -90,14 +90,12 @@ CMD_DEF(boot) {
 	if (strlen(kernelOption->value.valStr)) {
 		BootOption bootOption;
 		memset(&bootOption, 0, sizeof(BootOption));
-		bool haveInitrd = false;
 
 		if (parseBootPathString(&bootOption.kernel, kernelOption->value.valStr))
 			return 1;
 		if (strlen(initrdOption->value.valStr)) {
 			if (parseBootPathString(&bootOption.initrd, initrdOption->value.valStr))
 				return 1;
-			haveInitrd = true;
 		}
 
 		boot(&bootOption); // This call should not return.

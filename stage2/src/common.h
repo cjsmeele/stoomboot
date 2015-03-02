@@ -37,6 +37,13 @@ void hang() __attribute__((noreturn));
 void shutDown() __attribute__((noreturn));
 
 /**
+ * \brief Wait the specified amount of milliseconds.
+ *
+ * \param millis
+ */
+void msleep(uint32_t millis);
+
+/**
  * \brief Set length bytes starting at mem to c.
  *
  * \param mem

@@ -43,6 +43,20 @@ void shutDown() {
 	hang();
 }
 
+void msleep(uint32_t millis) {
+	assert(millis <= 0xffffffff / 1000);
+	uint32_t micros = millis * 1000;
+	if (millis)
+		asm volatile (
+			"int $0x15"
+			:
+			: "a" (0x8600), // Wait.
+			  "c" ((uint16_t)(micros >> 16)),
+			  "d" ((uint16_t)micros)
+			: "cc"
+		);
+}
+
 void *memset(void *mem, uint8_t c, size_t length) {
 	if (length)
 		asm volatile (

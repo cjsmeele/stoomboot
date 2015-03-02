@@ -102,7 +102,16 @@ int printf(const char *format, ...) __attribute__((format(printf,1,2)));
  *
  * \return true if a key was read and stored in the key parameter
  */
-bool   getKey(Key *key, bool wait);
+bool getKey(Key *key, bool wait);
+
+/**
+ * \brief Get a single line of user input.
+ *
+ * \param line
+ * \param size
+ *
+ * \return
+ */
 size_t getLine(char *line, size_t size);
 
 /**

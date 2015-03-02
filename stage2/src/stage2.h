@@ -11,7 +11,7 @@
 #include "common.h"
 
 #ifndef CONFIG_LOADER_CONFIG_PATH
-#define CONFIG_LOADER_CONFIG_PATH "/boot/loader.cfg"
+#define CONFIG_LOADER_CONFIG_PATH "/boot/loader.rc"
 #endif /* CONFIG_LOADER_CONFIG_PATH */
 
 /**

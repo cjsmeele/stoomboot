@@ -9,7 +9,7 @@
 #include "console.h"
 
 void boot(BootOption *bootOption) {
-	panic("'boot' unimplemented.");
+	printf("TODO: 'boot' unimplemented.\n");
 	/// @todo Boot!
 }
 

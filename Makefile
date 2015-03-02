@@ -136,7 +136,7 @@ $(DISKFILE): $(STAGE1_MBR_BIN) $(STAGE2_BIN) $(KERNEL_BIN) $(DISKFILES)
 	| $(SFDISK) $(SFDISKFLAGS) $@ >/dev/null
 	$(Q)$(DD) $(DDFLAGS) if=/dev/zero of=$(FATFILE) bs=512 count=129024 2>/dev/null
 	$(E) "  MKDOSFS  "
-	$(Q)$(MKDOSFS) -F 32 -i $(LOADER_FS_ID) -n OSDEV $(FATFILE)
+	$(Q)$(MKDOSFS) -F 32 -i $(LOADER_FS_ID) -n HAVIK $(FATFILE)
 	$(Q)mcopy -s $(BOOTDIR)/* ::/ -i $(FATFILE)
 	$(Q)$(DD) $(DDFLAGS) if=$(FATFILE) of=$@ conv=notrunc bs=512 seek=2048 count=129024 2>/dev/null
 	$(E) "  INSTALL  $@"

@@ -1,0 +1,3 @@
+# Havik loader configuration.
+
+set kernel FSLABEL=HAVIK:/boot/havik64.elf
