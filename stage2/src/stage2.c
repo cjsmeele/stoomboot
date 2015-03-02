@@ -7,18 +7,21 @@
  */
 #include "stage2.h"
 #include "console.h"
+#include "memmap.h"
 #include "disk/disk.h"
 #include "config.h"
 #include "shell.h"
 #include "boot.h"
 #include "dump.h"
 
-
 void stage2Main(uint32_t bootDiskNo, uint64_t loaderFsId) {
 
 	initConsole();
 
 	printf("\n  Welcome to the Havik bootloader.\n\n");
+
+	if (makeMemMap())
+		panic("error: int 15h 0xe820 for memory mapping is not supported by your BIOS.");
 
 	if (disksDiscover() <= 0)
 		// We did not detect any usable disks, abort.

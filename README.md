@@ -35,7 +35,7 @@ Feature / Component       | Status
 -- FAT32 driver           | Done
 -- Config file support    | In progress
 -- Command-line           | In progress
--- Memory detection       |
+-- Memory detection       | Done
 -- ELF loading            |
 -- Video mode setting     |
 -- Protected mode switch  |

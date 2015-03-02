@@ -43,6 +43,7 @@ CMD_DECL(halt);
 CMD_DECL(hello);
 CMD_DECL(help);
 CMD_DECL(hang);
+CMD_DECL(mem_info);
 CMD_DECL(set);
 CMD_DECL(unset);
 

@@ -10,6 +10,7 @@
 #include "config.h"
 #include "disk/disk.h"
 #include "boot.h"
+#include "memmap.h"
 
 #define CMD_INCLUDE(name, helpText) { \
 		#name, \
@@ -62,6 +63,13 @@ Command commands[] = {
 \nTurns off interrupts and halts the processor.\
 \n"
 	),
+	{
+		"mem-info",
+ "usage: mem-info\
+\nPrints a memory map.\
+\n",
+		CMD_FUNCTION(mem_info)
+	},
 	CMD_INCLUDE(
 		set,
  "usage: set [OPTION [VALUE]]\
@@ -254,6 +262,31 @@ CMD_DEF(hang) {
 		return 1;
 
 	hang();
+}
+
+CMD_DEF(mem_info) {
+	if (!interactive)
+		return 1;
+
+	for (uint32_t i=0; i<MEMMAP_MAX_REGIONS; i++) {
+		if (!memMap.regions[i].length)
+			// Indicates the end of our memory map.
+			break;
+
+		printf(
+			"starting at %#08x.%08x, %s%'12uK = %s\n",
+			(uint32_t)(memMap.regions[i].start >> 32),
+			(uint32_t) memMap.regions[i].start,
+			memMap.regions[i].length >> 32 ? ">" : "",
+			memMap.regions[i].length >> 32 ? 0xffffffff : (uint32_t)memMap.regions[i].length / 1024,
+
+			  memMap.regions[i].type == MEMORY_REGION_TYPE_FREE
+			? "free"
+			: "reserved"
+		);
+	}
+
+	return 0;
 }
 
 static void printConfigOption(ConfigOption *option) {
