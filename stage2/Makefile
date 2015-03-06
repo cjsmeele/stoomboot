@@ -9,7 +9,6 @@ E := @true
 else
 Q := @
 E := @echo 
-MAKEFLAGS += --no-print-directory
 endif
 
 # }}}
@@ -28,13 +27,7 @@ endif
 SRCDIR := src
 OBJDIR := obj
 BINDIR := bin
-
-# }}}
-# Output files {{{
-
-BINFILE := $(BINDIR)/$(PACKAGE_NAME).bin
-
-OUTFILES = $(OBJFILES) $(BINFILE)
+DEPDIR := dep
 
 # }}}
 # Source and intermediate files {{{
@@ -42,13 +35,20 @@ OUTFILES = $(OBJFILES) $(BINFILE)
 ASMFILES := $(shell find $(SRCDIR) -name '*.asm')
 CFILES   := $(shell find $(SRCDIR) -name '*.c')
 HFILES   := $(shell find $(SRCDIR) -name '*.h')
-DEPFILES := $(CFILES:$(SRCDIR)/%.c=$(DEPDIR)/%.d)
 OBJNAMES := $(ASMFILES:$(SRCDIR)/%.asm=%) $(CFILES:$(SRCDIR)/%.c=%)
 OBJFILES := $(OBJNAMES:%=$(OBJDIR)/%.o)
+DEPFILES := $(CFILES:$(SRCDIR)/%.c=$(DEPDIR)/%.d)
 
 LDFILE := stage2.ld
 
 INFILES := $(ASMFILES) $(CFILES) $(HFILES)
+
+# }}}
+# Output files {{{
+
+BINFILE  := $(BINDIR)/$(PACKAGE_NAME).bin
+
+OUTFILES = $(OBJFILES) $(DEPFILES) $(BINFILE)
 
 # }}}
 # Toolkit {{{
@@ -99,9 +99,16 @@ LDFLAGS    = $(addprefix -L, $(LDLIBPATH))
 
 # Make targets {{{
 
-.PHONY: all clean bin doc
+.PHONY: all dep doc clean bin
 
 all: bin
+
+dep: $(DEPFILES)
+
+# Include generated dependencies if we're compiling or linking.
+ifeq (,$(filter $(MAKECMDGOALS),dep doc clean))
+-include $(CFILES:$(SRCDIR)/%.c=$(DEPDIR)/%.d)
+endif
 
 bin: $(BINFILE)
 
