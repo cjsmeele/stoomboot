@@ -5,6 +5,7 @@
 */doc/doxygen/*
 /kernel/dep/*
 /img/*
+/disk/boot/boot/*.elf
 
 # Local makefile settings
 Makefile.local

@@ -25,8 +25,8 @@ bool vfatDetect(Partition *part);
 
 int vfatGetFile(Partition *part, FileInfo *fileInfo, const char *path);
 
-int vfatReadFileBlock(Partition *part, FileInfo *fileInfo, uint8_t *buffer);
+int vfatReadFileBlock(FileInfo *fileInfo, uint8_t *buffer);
 
-int vfatReadDir(Partition *part, FileInfo *fileInfo, FileInfo files[], size_t offset, size_t count);
+int vfatReadDir(FileInfo *fileInfo, FileInfo files[], size_t offset, size_t count);
 
 #endif /* _FS_VFAT_H */

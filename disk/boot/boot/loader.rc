@@ -1,3 +1,4 @@
 # Havik loader configuration.
 
-set kernel FSLABEL=HAVIK:/boot/havik64.elf
+set kernel hd0:0:/boot/havik32.elf
+set timeout 3

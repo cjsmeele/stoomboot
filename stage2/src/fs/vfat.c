@@ -338,6 +338,7 @@ static int getFile(VfatPartData *partData, FileInfo *fileInfo, uint32_t rootClus
 					// This is the requested file.
 					strncpy(fileInfo->name, fileName, sizeof(fileInfo->name));
 
+					fileInfo->partition        = partData->partition;
 					fileInfo->fsAddressStart   = clusterNo;
 					fileInfo->fsAddressCurrent = (uint64_t)clusterNo << 32;
 					fileInfo->size             = dentry->fileSize;
@@ -377,10 +378,10 @@ int vfatGetFile(Partition *part, FileInfo *fileInfo, const char *path) {
 	return getFile(&partData, fileInfo, partData.rootDirCluster, path + 1);
 }
 
-int vfatReadFileBlock(Partition *part, FileInfo *fileInfo, uint8_t *buffer) {
+int vfatReadFileBlock(FileInfo *fileInfo, uint8_t *buffer) {
 	VfatPartData partData;
 	memset(&partData, 0, sizeof(VfatPartData));
-	if (vfatInit(&partData, part))
+	if (vfatInit(&partData, fileInfo->partition))
 		return FS_INTERNAL_ERROR;
 
 	if (seekCluster(&partData, fileInfo->fsAddressCurrent >> 32))
@@ -399,7 +400,7 @@ int vfatReadFileBlock(Partition *part, FileInfo *fileInfo, uint8_t *buffer) {
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 
-int vfatReadDir(Partition *part, FileInfo *fileInfo, FileInfo files[], size_t offset, size_t count) {
+int vfatReadDir(FileInfo *fileInfo, FileInfo files[], size_t offset, size_t count) {
 	panic("VFAT readDir() unimplemented.");
 	return 0;
 }

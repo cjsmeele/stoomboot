@@ -9,6 +9,7 @@
 #include "console.h"
 #include "memmap.h"
 #include "disk/disk.h"
+#include "rcfile.h"
 #include "config.h"
 #include "shell.h"
 #include "boot.h"
@@ -35,39 +36,20 @@ void stage2Main(uint32_t bootDiskNo, uint64_t loaderFsId) {
 
 		FileInfo fileInfo;
 		memset(&fileInfo, 0, sizeof(FileInfo));
-		int ret = loaderPart->fsDriver->getFile(loaderPart, &fileInfo, CONFIG_LOADER_CONFIG_PATH);
-		if (ret == FS_FILE_NOT_FOUND) {
+		int ret = loaderPart->fsDriver->getFile(
+			loaderPart,
+			&fileInfo,
+			CONFIG_LOADER_CONFIG_PATH
+		);
+		if (ret == FS_FILE_NOT_FOUND || fileInfo.type != FILE_TYPE_REGULAR) {
 			printf(
 				"warning: Bootloader configuration file not found at hd%u:%u:%s\n",
 				loaderPart->disk->diskNo,
 				loaderPart->partitionNo,
 				CONFIG_LOADER_CONFIG_PATH
 			);
-		} else {
-			assert(fileInfo.type == FILE_TYPE_REGULAR);
-
-			/*
-			printf("Dumping loader configuration:\n\n");
-
-			uint8_t buffer[loaderPart->disk->blockSize];
-
-			for (size_t i=0; i<fileInfo.size; i+=loaderPart->disk->blockSize) {
-				int ret = loaderPart->fsDriver->readFileBlock(loaderPart, &fileInfo, buffer);
-				if (ret != FS_SUCCESS)
-					panic("Could not read bootloader config file");
-
-				dump(buffer, MIN(fileInfo.size - i, loaderPart->disk->blockSize));
-			}
-			*/
-
-			/// @todo Run commands in config file.
-
-			//printf(
-			//	"Configuration loaded from hd%u:%u:%s.\n",
-			//	loaderPart->disk->diskNo,
-			//	loaderPart->partitionNo,
-			//	CONFIG_LOADER_CONFIG_PATH
-			//);
+		} else if (ret == FS_SUCCESS) {
+			parseRcFile(&fileInfo);
 		}
 	} else {
 		printf(

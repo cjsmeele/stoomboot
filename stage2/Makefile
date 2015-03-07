@@ -71,7 +71,8 @@ CWARNINGS := \
 	-Wmissing-declarations \
 	-Wno-long-long \
 	-Wuninitialized \
-	-Wpadded
+	-Wpadded \
+	-Wno-format
 
 ASFLAGS := -f elf32
 CFLAGS  := \

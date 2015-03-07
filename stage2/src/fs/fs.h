@@ -24,7 +24,7 @@ typedef struct Partition Partition;
 #define FS_FILE_NOT_FOUND (-3)
 
 typedef enum {
-	FILE_TYPE_REGULAR,
+	FILE_TYPE_REGULAR = 1,
 	FILE_TYPE_DIRECTORY,
 } FileType;
 
@@ -33,6 +33,7 @@ typedef enum {
  *        any FS driver.
  */
 typedef struct {
+	Partition *partition;
 	char     name[FS_MAX_FILE_NAME_LENGTH + 1];
 	uint64_t fsAddressStart;   ///< An implementation dependent address.
 	uint64_t fsAddressCurrent; ///< An implementation dependent address, used during reads.
@@ -94,7 +95,7 @@ struct FileSystemDriver {
 	 * \retval FS_IO_ERROR
 	 */
 	int (*readFileBlock)(
-		Partition *partition, FileInfo *fileInfo,
+		FileInfo *fileInfo,
 		uint8_t *buffer
 	);
 
@@ -113,7 +114,7 @@ struct FileSystemDriver {
 	 * \retval FS_IO_ERROR
 	 */
 	int (*readDir)(
-		Partition *partition, FileInfo *fileInfo,
+		FileInfo *fileInfo,
 		FileInfo files[],
 		size_t offset,
 		size_t count

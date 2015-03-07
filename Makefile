@@ -29,19 +29,22 @@ STAGE1DIR := stage1
 STAGE2DIR := stage2
 KERNELDIR := kernel
 
-FSDIR   := disk
-BOOTDIR := $(FSDIR)/boot
-IMGDIR := img
+DISKDIR     := disk
+LOADERFSDIR := $(DISKDIR)/boot
+IMGDIR      := img
 
 # }}}
 # Output files {{{
 
 DISKFILE := $(IMGDIR)/$(PACKAGE_NAME)-disk.img
 FATFILE  := $(IMGDIR)/fat.img
+LOADERFS_RCFILE := $(LOADERFSDIR)/boot/loader.rc
+LOADERFS_KERNEL := $(LOADERFSDIR)/boot/$(PACKAGE_NAME)32.elf
 
-OUTFILES := $(DISKFILE) $(FATFILE)
+OUTFILES := $(DISKFILE) $(FATFILE) $(LOADERFS_KERNEL)
 
-LOADER_FS_ID   := $(shell printf '%08x' `date +'%s'`)
+#LOADER_FS_ID   := $(shell printf '%08x' `date +'%s'`)
+LOADER_FS_ID   := $(shell printf '%08x' `date +'%Y%m%d3'`)
 LOADER_FS_SIZE := 129024
 
 # }}}
@@ -52,7 +55,7 @@ STAGE1_FAT32_BIN := $(STAGE1DIR)/bin/$(PACKAGE_NAME)-stage1-fat32.bin
 STAGE2_BIN       := $(STAGE2DIR)/bin/$(PACKAGE_NAME)-stage2.bin
 KERNEL_BIN       := $(KERNELDIR)/bin/$(PACKAGE_NAME)-kernel.elf
 
-DISKFILES        := $(shell find $(FSDIR) -mindepth 1)
+DISKFILES        := $(shell find $(DISKDIR) -mindepth 1)
 
 INFILES := $(STAGE1_MBR_BIN) $(STAGE1_FAT32_BIN) $(STAGE2_BIN) $(KERNEL_BIN) $(DISKFILES)
 
@@ -115,7 +118,8 @@ clean-all: clean
 
 disk: $(DISKFILE)
 
-$(FATFILE): $(KERNEL_BIN) $(DISKFILES)
+#$(FATFILE): $(KERNEL_BIN) $(DISKFILES)
+$(FATFILE): $(KERNEL_BIN) $(LOADERFS_RCFILE) $(LOADERFS_KERNEL)
 	$(E) ""
 	$(E) "Loader Filesystem"
 	$(E) "================="
@@ -124,8 +128,8 @@ $(FATFILE): $(KERNEL_BIN) $(DISKFILES)
 	$(Q)$(DD) $(DDFLAGS) if=/dev/zero of=$@ bs=512 count=$(LOADER_FS_SIZE) 2>/dev/null
 	$(E) "  MKDOSFS  $@"
 	$(Q)$(MKDOSFS) -F 32 -i $(LOADER_FS_ID) -n HAVIK $(FATFILE)
-	$(E) "  MCOPY    $(BOOTDIR)"
-	$(Q)mcopy -s $(BOOTDIR)/* ::/ -i $@
+	$(E) "  MCOPY    $(LOADERFSDIR)"
+	$(Q)mcopy -s $(LOADERFSDIR)/* ::/ -i $@
 
 $(DISKFILE): $(STAGE1_MBR_BIN) $(STAGE2_BIN) $(FATFILE)
 	$(E) ""
@@ -186,5 +190,8 @@ kernel-bin:
 	$(E) "Kernel"
 	$(E) "======"
 	$(Q)$(MAKE) -C $(KERNELDIR) bin
+
+$(LOADERFS_KERNEL): $(KERNEL_BIN)
+	$(Q)ln -f $< $@
 
 # }}}
