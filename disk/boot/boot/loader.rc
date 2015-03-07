@@ -1,4 +1,9 @@
 # Havik loader configuration.
 
 set kernel hd0:0:/boot/havik32.elf
-set timeout 3
+
+#set timeout 3
+
+set video-width  800
+set video-height 600
+set video-bbp    32

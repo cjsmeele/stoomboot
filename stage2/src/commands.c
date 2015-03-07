@@ -11,6 +11,7 @@
 #include "disk/disk.h"
 #include "boot.h"
 #include "memmap.h"
+#include "vbe.h"
 
 #define CMD_INCLUDE(name, helpText) { \
 		#name, \
@@ -82,6 +83,20 @@ Command commands[] = {
 \nClears a configuration option (sets it to 0 or '').\
 \n"
 	),
+	{
+		"vbe-info",
+ "usage: vbe-info\
+\nPrints VBE video modes information.\
+\n",
+		CMD_FUNCTION(vbe_info)
+	},
+	{
+		"vbe-set",
+ "usage: vbe-set (MODE | WIDTH HEIGHT [BBP])\
+\nChanges video mode to the specified mode, if possible.\
+\n",
+		CMD_FUNCTION(vbe_set)
+	},
 };
 
 #undef CMD_INCLUDE
@@ -364,6 +379,35 @@ CMD_DEF(unset) {
 		return 1;
 	} else {
 		printf("warning: Invalid unset command ignored\n");
+		return 1;
+	}
+}
+
+CMD_DEF(vbe_info) {
+	vbeDumpModes();
+	return 0;
+}
+
+CMD_DEF(vbe_set) {
+	if (argc == 2) {
+		return vbeSetMode(atoi(argv[1]));
+	} else if (argc >= 3 && argc <= 4) {
+		uint16_t mode = vbeGetModeFromModeInfo(
+			atoi(argv[1]),
+			atoi(argv[2]),
+			argc == 4
+				? atoi(argv[3])
+				: 0
+		);
+		if (mode == 0xffff) {
+			printf("The requested video mode is not supported\n");
+			return 1;
+		}
+		return vbeSetMode(mode);
+	} else if (interactive) {
+		printf("usage: vbe_set (MODE | WIDTH HEIGHT [BBP])\n");
+		return 1;
+	} else {
 		return 1;
 	}
 }

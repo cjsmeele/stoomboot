@@ -46,6 +46,8 @@ CMD_DECL(hang);
 CMD_DECL(mem_info);
 CMD_DECL(set);
 CMD_DECL(unset);
+CMD_DECL(vbe_info);
+CMD_DECL(vbe_set);
 
 /**
  * \brief Get a command from commands[] by its name.

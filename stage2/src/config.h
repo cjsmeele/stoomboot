@@ -48,4 +48,9 @@ ConfigOption *getConfigOption(const char *key);
  */
 void setConfigOption(const char *key, ConfigOptionValue value);
 
+/**
+ * \brief Clear configuration strings.
+ */
+void initConfig();
+
 #endif /* _CONFIG_H */
