@@ -41,7 +41,8 @@ FATFILE  := $(IMGDIR)/fat.img
 
 OUTFILES := $(DISKFILE) $(FATFILE)
 
-LOADER_FS_ID := $(shell printf '%08x' `date +'%s'`)
+LOADER_FS_ID   := $(shell printf '%08x' `date +'%s'`)
+LOADER_FS_SIZE := 129024
 
 # }}}
 # Source and intermediate files {{{
@@ -114,9 +115,19 @@ clean-all: clean
 
 disk: $(DISKFILE)
 
-# TODO: Split up the DISKFILE target. (image, FS creation, etc.).
+$(FATFILE): $(KERNEL_BIN) $(DISKFILES)
+	$(E) ""
+	$(E) "Loader Filesystem"
+	$(E) "================="
+	$(Q)mkdir -p $(@D)
+	$(E) "  DD       $@"
+	$(Q)$(DD) $(DDFLAGS) if=/dev/zero of=$@ bs=512 count=$(LOADER_FS_SIZE) 2>/dev/null
+	$(E) "  MKDOSFS  $@"
+	$(Q)$(MKDOSFS) -F 32 -i $(LOADER_FS_ID) -n HAVIK $(FATFILE)
+	$(E) "  MCOPY    $(BOOTDIR)"
+	$(Q)mcopy -s $(BOOTDIR)/* ::/ -i $@
 
-$(DISKFILE): $(STAGE1_MBR_BIN) $(STAGE2_BIN) $(KERNEL_BIN) $(DISKFILES)
+$(DISKFILE): $(STAGE1_MBR_BIN) $(STAGE2_BIN) $(FATFILE)
 	$(E) ""
 	$(E) "Disk Image"
 	$(E) "=========="
@@ -127,18 +138,14 @@ $(DISKFILE): $(STAGE1_MBR_BIN) $(STAGE2_BIN) $(KERNEL_BIN) $(DISKFILES)
 	$(Q)/bin/echo -e \
 	"unit: sectors\n"\
 	"\n"\
-	""$(DISKFILE)"1 : start=     2048, size=   129024, Id= c, bootable\n"\
+	""$(DISKFILE)"1 : start=     2048, size=   $(LOADER_FS_SIZE), Id= c, bootable\n"\
 	""$(DISKFILE)"2 : start=   131072, size=    65536, Id= 5\n"\
 	""$(DISKFILE)"3 : start=        0, size=        0, Id= 0\n"\
 	""$(DISKFILE)"4 : start=   196608, size=    65536, Id=83\n"\
 	""$(DISKFILE)"5 : start=   131104, size=    12288, Id=83\n"\
 	""$(DISKFILE)"6 : start=   143424, size=    53184, Id=83"\
 	| $(SFDISK) $(SFDISKFLAGS) $@ >/dev/null
-	$(Q)$(DD) $(DDFLAGS) if=/dev/zero of=$(FATFILE) bs=512 count=129024 2>/dev/null
-	$(E) "  MKDOSFS  "
-	$(Q)$(MKDOSFS) -F 32 -i $(LOADER_FS_ID) -n HAVIK $(FATFILE)
-	$(Q)mcopy -s $(BOOTDIR)/* ::/ -i $(FATFILE)
-	$(Q)$(DD) $(DDFLAGS) if=$(FATFILE) of=$@ conv=notrunc bs=512 seek=2048 count=129024 2>/dev/null
+	$(Q)$(DD) $(DDFLAGS) if=$(FATFILE) of=$@ conv=notrunc bs=512 seek=2048 count=$(LOADER_FS_SIZE) 2>/dev/null
 	$(E) "  INSTALL  $@"
 	$(Q)perl tools/loader-install.pl \
 		--mbr \
