@@ -9,20 +9,24 @@
 extern stage2Main
 
 global start
+global _start
 
 SECTION .data
 
+u16_boot_device: dw 0
+u16_fs_id_ptr:   dw 0
+
 s_loading: db "stage2", 0x0d, 0x0a, 0
 
-SECTION .text
+SECTION .start
 
-db 0xfa, 0xf4     ; cli, hlt
-db "STAGE2", 0, 0 ; magic!
+_start:
+	db 0xfa, 0xf4     ; cli, hlt
+	db "STAGE2", 0, 0 ; magic!
 
 jmp start
 
-u16_boot_device: dw 0
-u16_fs_id_ptr:   dw 0
+SECTION .text
 
 start:
 	mov [u16_boot_device], ax

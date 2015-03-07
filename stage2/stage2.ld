@@ -4,6 +4,10 @@ SECTIONS {
 	. = 0x00007e00;
 	_STAGE2_START = .;
 
+	.start : {
+		*(.start)
+	}
+
 	.text ALIGN (0x10) : {
 		_TEXT_START = .;
 		*(.text*)

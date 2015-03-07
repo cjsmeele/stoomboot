@@ -33,7 +33,7 @@ Feature / Component       | Status
 -- MBR part-table parsing | Done
 -- GPT part-table parsing |
 -- FAT32 driver           | Done
--- Config file support    | In progress
+-- Config file support    | Done
 -- Command-line           | In progress
 -- Memory detection       | Done
 -- ELF loading            |
