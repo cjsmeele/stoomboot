@@ -27,18 +27,18 @@ Feature / Component       | Status
 ------------------------- | ------
 *Bootloader*              |
 -- Stage 1 MBR            | Done
--- Stage 1 FAT32          |
+-- Stage 1 FAT32          | Optional, unimplemented
 -- Console I/O            | Done
 -- Disk I/O               | Done
 -- MBR part-table parsing | Done
--- GPT part-table parsing |
+-- GPT part-table parsing | Optional, unimplemented
 -- FAT32 driver           | Done
 -- Config file support    | Done
--- Command-line           | In progress
+-- Command-line           | Done
 -- Memory detection       | Done
--- ELF loading            |
--- Video mode setting     |
--- Protected mode switch  |
+-- ELF loading            | In progress
+-- Video mode setting     | Done
+-- Protected mode switch  | In progress
 *Kernel*                  |
 -- "Hello world"          |
 -- ...                    |
