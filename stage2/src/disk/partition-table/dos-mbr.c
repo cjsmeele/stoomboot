@@ -66,7 +66,6 @@ int dosMbrScan(Disk *disk, uint64_t lbaStart, uint64_t blockCount) {
 					uint64_t extStart   = pte->lbaStart;   ///< Start of the extended partition.
 					uint64_t extSize    = pte->blockCount; ///< Extended partition size.
 					uint64_t nextEbr    = extStart;        ///< Start of the next EBR.
-					uint64_t lastEbrEnd = 0;               ///< End of the previous EBR's logical partition.
 
 					uint8_t ebrBuffer[DISK_MAX_BLOCK_SIZE];
 					memset(ebrBuffer, 0, DISK_MAX_BLOCK_SIZE);
@@ -76,14 +75,6 @@ int dosMbrScan(Disk *disk, uint64_t lbaStart, uint64_t blockCount) {
 							printf(
 								"warning: EBR out of range (%#08x > MIN(%#08x, %#08x))\n",
 								(uint32_t)nextEbr, (uint32_t)(extStart + extSize), (uint32_t)blockCount
-							);
-							goto invalidPartitionLayout;
-						}
-
-						if (lastEbrEnd && nextEbr <= lastEbrEnd) {
-							printf(
-								"warning: EBRs out of order (last logpart end: %#08x, next: %#08x)\n",
-								(uint32_t)lastEbrEnd, (uint32_t)nextEbr
 							);
 							goto invalidPartitionLayout;
 						}
@@ -117,7 +108,6 @@ int dosMbrScan(Disk *disk, uint64_t lbaStart, uint64_t blockCount) {
 						if (!ebrPte->lbaStart || !ebrPte->blockCount)
 							break;
 
-						lastEbrEnd = nextEbr + 1 + logPte->blockCount;
 						nextEbr    = extStart + ebrPte->lbaStart;
 					}
 				} else {
