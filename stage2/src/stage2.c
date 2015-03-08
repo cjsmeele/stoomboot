@@ -8,7 +8,6 @@
 #include "stage2.h"
 #include "console.h"
 #include "memmap.h"
-#include "disk/disk.h"
 #include "rcfile.h"
 #include "config.h"
 #include "shell.h"
@@ -17,6 +16,8 @@
 
 extern uint32_t _BSS_START;
 extern uint32_t _BSS_END;
+
+Partition *loaderPart = NULL;
 
 void stage2Main(uint32_t bootDiskNo, uint64_t loaderFsId) {
 
@@ -35,7 +36,7 @@ void stage2Main(uint32_t bootDiskNo, uint64_t loaderFsId) {
 		// We did not detect any usable disks, abort.
 		panic("No usable disk drives detected.");
 
-	Partition *loaderPart = getPartitionByFsId(loaderFsId);
+	loaderPart = getPartitionByFsId(loaderFsId);
 
 	if (loaderPart) {
 		if (loaderPart->disk->diskNo != (bootDiskNo & 0x7f))
@@ -60,11 +61,10 @@ void stage2Main(uint32_t bootDiskNo, uint64_t loaderFsId) {
 		}
 	} else {
 		printf(
-			"error: Could not find bootloader file system with id %08x-%08x\n",
+			"warning: Could not find bootloader file system with id %08x-%08x\n",
 			(uint32_t)(loaderFsId >> 32),
 			(uint32_t)loaderFsId
 		);
-		panic("No bootloader file system found");
 	}
 
 	ConfigOption *kernelOption = getConfigOption("kernel");

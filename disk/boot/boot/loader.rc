@@ -6,7 +6,7 @@
 ## - FSLABEL=<FSLABEL>:<PATH>
 ## - FSID=<FSID>:<PATH>
 ## - <PATH> (on the same partition as this configuration file)
-set kernel hd0:0:/boot/havik32.elf
+set kernel /boot/havik32.elf
 
 ## Initial ramdisks are currently not supported.
 #set initrd hd0:0:/boot/initrd32.elf

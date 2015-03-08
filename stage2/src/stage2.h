@@ -9,10 +9,13 @@
 #define _STAGE2_H
 
 #include "common.h"
+#include "disk/disk.h"
 
 #ifndef CONFIG_LOADER_CONFIG_PATH
 #define CONFIG_LOADER_CONFIG_PATH "/boot/loader.rc"
 #endif /* CONFIG_LOADER_CONFIG_PATH */
+
+extern Partition *loaderPart;
 
 /**
  * \brief Stage 2 C entrypoint.

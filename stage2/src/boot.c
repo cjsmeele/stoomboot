@@ -11,7 +11,7 @@
 #include "elf.h"
 #include "config.h"
 #include "vbe.h"
-#include "dump.h"
+#include "stage2.h"
 
 void boot(BootOption *bootOption) {
 
@@ -54,6 +54,8 @@ void boot(BootOption *bootOption) {
 
 		loadElf(&fileInfo);
 
+		// Boot failed. :(
+
 		if (modeSet) {
 			// Reset display to 80x25 text mode.
 			msleep(3000);
@@ -61,7 +63,7 @@ void boot(BootOption *bootOption) {
 		}
 	} else if (ret == FS_FILE_NOT_FOUND || fileInfo.type != FILE_TYPE_REGULAR) {
 		printf(
-			"warning: Kernel binary not found at hd%u:%u:%s\n",
+			"error: Kernel binary not found at hd%u:%u:%s\n",
 			kernelPartition->disk->diskNo,
 			kernelPartition->partitionNo,
 			bootOption->kernel.path
@@ -100,9 +102,67 @@ int parseBootPathString(BootFilePath *bootFile, char *str) {
 
 		printf("Selected boot file path: hd%u:%u, <%s>\n", diskNo, partNo, str);
 
+	} else if (strneq(str, "FSID=", 5)) {
+		str += 5;
+		uint32_t idLen = strchr(str, ':') - str;
+		if (!idLen || !str[idLen+1])
+			goto invalidFormat;
+
+		str[idLen] = '\0';
+
+		if (idLen < 1 || idLen > 16)
+			goto invalidFormat;
+
+		toLowerCase(str);
+
+		uint64_t id = 0;
+		for (uint32_t i=0; i<idLen; i++) {
+			if (
+				   (str[i] >= '0' && str[i] <= '9')
+				|| (str[i] >= 'a' && str[i] <= 'f')
+			) {
+				id |= (uint64_t)(
+					str[i] >= '0' && str[i] <= '9'
+					? str[i] - '0'
+					: str[i] - 'a' + 10
+				) << ((idLen - (i+1)) * 4);
+			}
+		}
+
+		bootFile->partition = getPartitionByFsId(id);
+		if (!bootFile->partition) {
+			printf("error: No filesystem with id %08x-%08x was found\n", (uint32_t)(id >> 32), (uint32_t)id);
+			return 1;
+		}
+
+		bootFile->path = str + idLen + 1;
+
+	} else if (strneq(str, "FSLABEL=", 8)) {
+		str += 8;
+		uint32_t labelLen = strchr(str, ':') - str;
+		if (!labelLen || !str[labelLen+1])
+			goto invalidFormat;
+
+		str[labelLen] = '\0';
+
+		bootFile->partition = getPartitionByFsLabel(str);
+		if (!bootFile->partition) {
+			printf("error: No filesystem with label '%s' was found\n", str);
+			return 1;
+		}
+
+		bootFile->path = str + labelLen + 1;
+
+	} else if (str[0] == '/') {
+		if (loaderPart) {
+			bootFile->path      = str;
+			bootFile->partition = loaderPart;
+		} else {
+			printf("error: No loader FS detected - partition relative boot file path is invalid\n");
+			return 1;
+		}
 	} else {
-		printf("error: Sorry, only hdN:M:/path boot file path formats are currently supported\n");
-		return 1;
+		goto invalidFormat;
 	}
 
 	return 0;
