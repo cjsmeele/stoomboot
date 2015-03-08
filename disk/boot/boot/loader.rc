@@ -1,9 +1,34 @@
-# Havik loader configuration.
+## Havik loader configuration.
 
+## The kernel path.
+## Valid path formats are as follows:
+## - hd<DISK_NO>:<PART_NO>:<PATH>
+## - FSLABEL=<FSLABEL>:<PATH>
+## - FSID=<FSID>:<PATH>
+## - <PATH> (on the same partition as this configuration file)
 set kernel hd0:0:/boot/havik32.elf
 
-#set timeout 3
+## Initial ramdisks are currently not supported.
+#set initrd hd0:0:/boot/initrd32.elf
 
-set video-width  800
-set video-height 600
-set video-bbp    32
+## Automatically boot the set kernel option after `timeout` seconds.
+## The user can press <Esc> to abort and load a shell.
+## If timeout is -1, a shell is started immediately.
+## If timeout is 0, the kernel is booted without a delay.
+#set timeout 3
+set timeout 0
+
+## Uncomment either width and height (and optionally bbp) or video-mode to set
+## a video mode on boot.
+#set video-width  800
+#set video-height 600
+#set video-bbp    32
+
+#set video-mode   258
+
+## Uncomment to set an initial bootloader video mode (not recommended).
+#vbe-set 1920 1080 32
+#vbe-set 1024 768
+#vbe-set 258
+
+## Use `vbe-info` to get a list of supported video modes.
