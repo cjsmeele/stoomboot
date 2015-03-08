@@ -18,6 +18,7 @@ ConfigOption configOptions[] = {
 	{ "video-width",  CONFIG_OPTION_TYPE_INT32,  .value.valInt32 = 0                  },
 	{ "video-height", CONFIG_OPTION_TYPE_INT32,  .value.valInt32 = 0                  },
 	{ "video-bbp",    CONFIG_OPTION_TYPE_INT32,  .value.valInt32 = 0                  },
+	{ "video-mode",   CONFIG_OPTION_TYPE_INT32,  .value.valInt32 = 0                  },
 };
 const size_t configOptionCount = ELEMS(configOptions);
 

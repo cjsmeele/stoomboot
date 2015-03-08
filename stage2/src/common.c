@@ -6,6 +6,7 @@
  * \license   MIT. See LICENSE for the full license text.
  */
 #include "common.h"
+#include "console.h"
 
 inline void halt() {
 	asm volatile (
@@ -55,6 +56,17 @@ void msleep(uint32_t millis) {
 			  "d" ((uint16_t)micros)
 			: "cc"
 		);
+}
+
+void printStackState() {
+	uint32_t sp;
+	asm volatile (
+		"mov %%esp, %0"
+		: "=r" (sp)
+		:
+		:
+	);
+	printf("debug: Stack is at %#08x\n", sp);
 }
 
 void *memset(void *mem, uint8_t c, size_t length) {

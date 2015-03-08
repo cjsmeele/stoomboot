@@ -44,6 +44,11 @@ void shutDown() __attribute__((noreturn));
 void msleep(uint32_t millis);
 
 /**
+ * \brief Prints the stack pointer for debugging.
+ */
+void printStackState();
+
+/**
  * \brief Set length bytes starting at mem to c.
  *
  * \param mem
