@@ -15,7 +15,13 @@
 #include "boot.h"
 #include "dump.h"
 
+extern uint32_t _BSS_START;
+extern uint32_t _BSS_END;
+
 void stage2Main(uint32_t bootDiskNo, uint64_t loaderFsId) {
+
+	// Nobody cleared this area for us.
+	memset((void*)_BSS_START, 0, _BSS_END - _BSS_START);
 
 	initConfig();
 	initConsole();
