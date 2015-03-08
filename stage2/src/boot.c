@@ -7,10 +7,68 @@
  */
 #include "boot.h"
 #include "console.h"
+#include "fs/fs.h"
+#include "elf.h"
+#include "config.h"
+#include "vbe.h"
+#include "dump.h"
 
 void boot(BootOption *bootOption) {
-	printf("TODO: 'boot' unimplemented.\n");
-	/// @todo Boot!
+
+	Partition *kernelPartition = bootOption->kernel.partition;
+
+	if (!kernelPartition->fsDriver) {
+		printf("error: Kernel partition has no FS driver\n");
+		return;
+	}
+
+	FileInfo fileInfo;
+	memset(&fileInfo, 0, sizeof(FileInfo));
+
+	int ret = kernelPartition->fsDriver->getFile(
+		kernelPartition,
+		&fileInfo,
+		bootOption->kernel.path
+	);
+
+	if (ret == FS_SUCCESS && fileInfo.type == FILE_TYPE_REGULAR) {
+		ConfigOption *videoWidth  = getConfigOption("video-width");
+		ConfigOption *videoHeight = getConfigOption("video-height");
+		ConfigOption *videoBpp    = getConfigOption("video-bbp");
+		ConfigOption *videoMode   = getConfigOption("video-mode");
+
+		bool modeSet = false;
+
+		if (videoMode->value.valInt32) {
+			modeSet = !vbeSetMode(videoMode->value.valInt32);
+		} else if (videoWidth->value.valInt32 && videoHeight->value.valInt32) {
+			uint16_t mode = vbeGetModeFromModeInfo(
+				videoWidth->value.valInt32,
+				videoHeight->value.valInt32,
+				videoBpp->value.valInt32
+			);
+
+			if (mode != 0xffff)
+				modeSet = !vbeSetMode(mode);
+		}
+
+		loadElf(&fileInfo);
+
+		if (modeSet) {
+			// Reset display to 80x25 text mode.
+			msleep(3000);
+			setVideoMode(3);
+		}
+	} else if (ret == FS_FILE_NOT_FOUND || fileInfo.type != FILE_TYPE_REGULAR) {
+		printf(
+			"warning: Kernel binary not found at hd%u:%u:%s\n",
+			kernelPartition->disk->diskNo,
+			kernelPartition->partitionNo,
+			bootOption->kernel.path
+		);
+	} else {
+		printf("An error occurred while locating the kernel binary on disk\n");
+	}
 }
 
 int parseBootPathString(BootFilePath *bootFile, char *str) {

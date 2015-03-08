@@ -128,10 +128,8 @@ CMD_DEF(boot) {
 
 	} else if(interactive) {
 		printf("Please set the `kernel' option first. For example:\n");
-		printf("  set kernel                 hd0:0:/boot/kernel.elf\n");
-		printf("  set kernel FSID=0123456789abcdef:/boot/kernel.elf *\n");
-		printf("  set kernel          FSLABEL=BOOT:/boot/kernel.elf *\n\n");
-		printf("* not yet supported\n");
+		printf("  set kernel hd0:0:/boot/kernel.elf\n");
+		printf("  set kernel FSLABEL=HAVIK:/boot/kernel.elf\n");
 		return 1;
 	} else {
 		printf("error: `boot' without a kernel option set\n");

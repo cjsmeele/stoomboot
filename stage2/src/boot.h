@@ -35,7 +35,8 @@ void boot(BootOption *bootOption);
  *
  * - `hd0:0:/path/to/kernel.elf`
  * - `FSID=0123456789abcdef:/path/to/kernel.elf`
- * - `FSLABEL=BOOT:/path/to/kernel.elf`
+ * - `FSLABEL=HAVIK:/path/to/kernel.elf`
+ * - `/path/on/loader/fs/to/kernel.elf`
  *
  * Note: str will be modified by this function.
  *
