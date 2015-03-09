@@ -6,6 +6,7 @@
  * \license   MIT. See LICENSE for the full license text.
  */
 #include "stage2.h"
+#include "unreal.h"
 #include "console.h"
 #include "memmap.h"
 #include "rcfile.h"
@@ -13,6 +14,7 @@
 #include "shell.h"
 #include "boot.h"
 #include "dump.h"
+#include "far.h"
 
 extern uint32_t _BSS_START;
 extern uint32_t _BSS_END;
@@ -26,6 +28,13 @@ void stage2Main(uint32_t bootDiskNo, uint64_t loaderFsId) {
 
 	initConfig();
 	initConsole();
+
+	enableUnrealMode();
+
+	uint16_t a = 0x0a01;
+	farcpy(0x000b8000, (uint32_t)&a, sizeof(a));
+	segcpy(0xb8000002, 0xb0008000,   sizeof(a)); // Using segment:offset.
+	farcpy(0x000b8004, 0x000b8002,   sizeof(a)); // Using 32-bit addresses.
 
 	printf("\n  Welcome to the Havik bootloader.\n\n");
 

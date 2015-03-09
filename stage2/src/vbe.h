@@ -13,7 +13,6 @@
 extern uint16_t vbeCurrentMode;
 
 typedef struct {
-	//uint16_t modeAttributes;
 	union {
 		struct {
 			bool attrSupported                     : 1;

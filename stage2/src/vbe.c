@@ -7,7 +7,7 @@
  */
 #include "vbe.h"
 #include "console.h"
-#include "segcpy.h"
+#include "far.h"
 
 uint16_t vbeCurrentMode = 0xffff;
 

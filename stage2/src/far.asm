@@ -1,58 +1,42 @@
 ;; \file
-;; \brief     Copy memory across segments.
+;; \brief     Memory operations using 32-bit pointers.
 ;; \author    Chris Smeele
 ;; \copyright Copyright (c) 2015, Chris Smeele. All rights reserved.
 ;; \license   MIT. See LICENSE for the full license text.
 
 [bits 16]
 
-global segcpy
+global farcpy
 
 SECTION .text
 
-segcpy:
+farcpy:
 	push ebp
 	mov ebp, esp
 
-	cli
-	push fs
-	push gs
-	push di
-	push si
+	push edi
+	push esi
 
 	; Load counter.
 	mov ecx, [ebp + 16]
 	or ecx, ecx
 	jz .end
 
-	; Load dest into FS:DI.
-	mov eax, [ebp+8]
-	shr eax, 16
-	mov fs, eax
+	; Load dest and source.
 	mov edi, [ebp+8]
-	and edi, 0xffff
-
-	; Load source into GS:SI.
-	mov eax, [ebp+12]
-	shr eax, 16
-	mov gs, eax
 	mov esi, [ebp+12]
-	and esi, 0xffff
 
 .loop:
-	mov al, [gs:si]
-	mov [fs:di], al
-	inc di
-	inc si
+	mov al, [ds:esi]
+	mov [ds:edi], al
+	inc edi
+	inc esi
 	dec ecx
 	jnz .loop
 
 .end:
-	pop si
-	pop di
-	pop gs
-	pop fs
-	sti
+	pop esi
+	pop edi
 
 	mov esp, ebp
 	pop ebp
