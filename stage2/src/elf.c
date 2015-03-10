@@ -9,6 +9,8 @@
 #include "disk/disk.h"
 #include "console.h"
 #include "dump.h"
+#include "far.h"
+#include "protected.h"
 
 // ELF32 types.
 typedef uint32_t elf32_addr_t;
@@ -110,6 +112,9 @@ typedef struct {
 
 
 int loadElf(FileInfo *file) {
+
+	/// \todo This function should be split up.
+
 	Partition *part = file->partition;
 	uint8_t buffer[part->disk->blockSize];
 
@@ -185,18 +190,36 @@ int loadElf(FileInfo *file) {
 		return -1;
 	}
 
+	if (phNum * phEntSize > 2048) {
+		// Looks like a sane limit.
+		printf("error: ELF program header too large > 2048.\n");
+		return -1;
+	}
+
 	printf(
-		"PHEnt-size: %u, count: %u, starts at %#08x\n",
+		"PH table offset: %#08x, entry size: %u, count: %u\n",
+		(uint32_t)phOff,
 		(uint32_t)phEntSize,
-		(uint32_t)phNum,
-		(uint32_t)phOff
+		(uint32_t)phNum
 	);
+
+	struct {
+		uint32_t fileOffset;
+		uint32_t memAddr;
+		uint32_t fileSize;
+		uint32_t memSize;
+	} loadableSegments[phNum];
+
+	memset(loadableSegments, 0, sizeof(loadableSegments));
 
 	uint8_t  phBuffer[phEntSize];
 	uint32_t phEntriesProcessed = 0;
 	uint32_t bufferOff   = 0;
 
-	while (bytesRead < phOff) {
+	while (
+		bytesRead < phOff
+		+ ((uint32_t)phOff % part->disk->blockSize ? 0 : 1)
+	) {
 		if (bytesRead >= file->size) {
 			printf("error: Unexpected EOF in ELF file\n");
 			return -1;
@@ -231,16 +254,11 @@ int loadElf(FileInfo *file) {
 			phBuffer[j] = buffer[bufferOff++];
 		}
 
-		phEntriesProcessed++;
-
 		Elf32PhEntry *phEnt32 = (Elf32PhEntry*)phBuffer;
 		Elf64PhEntry *phEnt64 = (Elf64PhEntry*)phBuffer;;
 
 		uint32_t type   = is64 ? phEnt64->type   : phEnt32->type;
-		printf("Got program header, type = %u\n", type);
-
-		if (type != 1) // 1 == PT_LOAD.
-			continue;
+		printf("- Pogram Header found: type: %u\n", type);
 
 		uint64_t offset   = is64 ? phEnt64->offset   : phEnt32->offset;
 		uint64_t vaddr    = is64 ? phEnt64->vAddr    : phEnt32->vAddr;
@@ -248,8 +266,20 @@ int loadElf(FileInfo *file) {
 		uint64_t sizeMem  = is64 ? phEnt64->sizeMem  : phEnt32->sizeMem;
 		uint32_t flags    = is64 ? phEnt64->flags    : phEnt32->flags;
 
+		if (type == 1) { // 1 == PT_LOAD.
+			loadableSegments[phEntriesProcessed].memAddr    = (uint32_t)vaddr;
+			loadableSegments[phEntriesProcessed].memSize    = (uint32_t)sizeMem;
+			loadableSegments[phEntriesProcessed].fileOffset = (uint32_t)offset;
+			loadableSegments[phEntriesProcessed].fileSize   = (uint32_t)sizeFile;
+		}
+
+		phEntriesProcessed++;
+
+		if (type != 1)
+			continue;
+
 		printf(
-			"Load %#08x -> %#08x.%08x (%u -> %u bytes) [%c%c%c]\n",
+			"  - Load %#08x -> %#08x.%08x (%u -> %u bytes) [%c%c%c]\n",
 			(uint32_t)offset,
 			(uint32_t)(vaddr >> 32),
 			(uint32_t)vaddr,
@@ -265,8 +295,6 @@ int loadElf(FileInfo *file) {
 				? 'x'
 				: '-'
 		);
-
-		/// @todo Actually load segments into memory.
 	}
 
 	if (phEntriesProcessed != phNum) {
@@ -274,7 +302,75 @@ int loadElf(FileInfo *file) {
 		return -1;
 	}
 
-	printf("error: 'boot' unimplemented.\n");
+	/// @todo Check memory map before loading kernel segments.
+
+	uint8_t segmentBuffer[512];
+
+	for (uint32_t i=0; i<phNum; i++) {
+		if (!loadableSegments[i].memAddr || !loadableSegments[i].memSize)
+			continue;
+
+		printf("Loading PT_LOAD segment at %#08x\n", loadableSegments[i].memAddr);
+
+		if (loadableSegments[i].fileOffset && loadableSegments[i].fileSize) {
+			while (
+				bytesRead <
+					  loadableSegments[i].fileOffset
+					+ (loadableSegments[i].fileOffset % part->disk->blockSize ? 0 : 1)
+			) {
+				if (bytesRead >= file->size) {
+					printf("error: Unexpected EOF in ELF file\n");
+					return -1;
+				}
+
+				if (part->fsDriver->readFileBlock(file, buffer) != FS_SUCCESS) {
+					printf("error: Could not read ELF binary\n");
+					return -1;
+				}
+
+				bytesRead += part->disk->blockSize;
+			}
+
+			bufferOff = (uint32_t)loadableSegments[i].fileOffset % part->disk->blockSize;
+
+			for (uint32_t j=0; j<loadableSegments[i].fileSize; j += ELEMS(segmentBuffer)) {
+				for (uint32_t k=0; k<ELEMS(segmentBuffer); k++) {
+					if (bufferOff >= MIN(part->disk->blockSize, file->size - (bytesRead - part->disk->blockSize))) {
+						if (bytesRead >= file->size) {
+							printf("error: Unexpected EOF in ELF file\n");
+							return -1;
+						}
+
+						if (part->fsDriver->readFileBlock(file, buffer) != FS_SUCCESS) {
+							printf("error: Could not read ELF binary\n");
+							return -1;
+						}
+
+						bytesRead += part->disk->blockSize;
+						bufferOff = 0;
+					}
+					segmentBuffer[k] = buffer[bufferOff++];
+				}
+				farcpy(
+					loadableSegments[i].memAddr + j,
+					(uint32_t)segmentBuffer,
+					MIN(ELEMS(segmentBuffer), loadableSegments[i].fileSize - j)
+				);
+			}
+		}
+	}
+
+	printf("\nKernel loaded, ready to jump to entrypoint at %#08x.\n", (uint32_t)entryPoint);
+	printf("See you on the other side!\n\n");
+
+	printf("-- press any key to jump --");
+
+	Key key;
+	getKey(&key, true);
+
+	printf("\r%40s\r", "");
+
+	enterProtectedMode(entryPoint);
 
 	return -1;
 }

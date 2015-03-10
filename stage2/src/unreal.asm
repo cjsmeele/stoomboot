@@ -56,7 +56,7 @@ enableUnrealMode:
 	or al, 1
 	mov cr0, eax ; Enable protected mode.
 
-	mov bx, 1 * 8
+	mov bx, 1*8
 	mov ds, bx ; Load data segment selector.
 
 	and al, 0xfe

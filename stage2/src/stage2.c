@@ -29,8 +29,6 @@ void stage2Main(uint32_t bootDiskNo, uint64_t loaderFsId) {
 
 	enableUnrealMode();
 
-	printf("\n  Welcome to the Havik bootloader.\n\n");
-
 	if (makeMemMap())
 		panic("error: int 15h 0xe820 for memory mapping is not supported by your BIOS.");
 
@@ -112,6 +110,8 @@ void stage2Main(uint32_t bootDiskNo, uint64_t loaderFsId) {
 			}
 		}
 	}
+
+	printf("\n  Welcome to the Havik bootloader.\n\n");
 
 	shell();
 

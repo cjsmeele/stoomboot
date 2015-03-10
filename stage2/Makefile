@@ -115,21 +115,21 @@ bin: $(BINFILE)
 
 $(BINFILE): $(OBJFILES) $(LDFILE)
 	$(E) "  LD   $@"
-	$(Q)mkdir -p `dirname $@`
+	$(Q)mkdir -p $(@D)
 	$(Q)$(LD) $(LDFLAGS) -T$(LDFILE) -o $@ $(OBJFILES)
 
 $(DEPDIR)/%.d: $(SRCDIR)/%.c
 	$(E) "  DEP  $@"
-	$(Q)mkdir -p `dirname $@`
+	$(Q)mkdir -p $(@D)
 	$(Q)$(CC) $(CFLAGS) -MM -MT $(<:$(SRCDIR)/%.c=$(OBJDIR)/%.o) -o $@ $<
 
 $(OBJDIR)/%.o: $(SRCDIR)/%.asm
-	$(Q)mkdir -p `dirname $@`
+	$(Q)mkdir -p $(@D)
 	$(E) "  AS   $<"
 	$(Q)$(AS) $(ASFLAGS) -o $@ $<
 
 $(OBJDIR)/%.o: $(SRCDIR)/%.c
-	$(Q)mkdir -p `dirname $@`
+	$(Q)mkdir -p $(@D)
 	$(E) "  CC   $<"
 	$(Q)$(CC) -o $@ -c $< $(CFLAGS)
 

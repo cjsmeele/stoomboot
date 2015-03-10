@@ -23,8 +23,8 @@ farcpy:
 	jz .end
 
 	; Load dest and source.
-	mov edi, [ebp+8]
-	mov esi, [ebp+12]
+	mov edi, [ebp +  8]
+	mov esi, [ebp + 12]
 
 .loop:
 	mov al, [ds:esi]
