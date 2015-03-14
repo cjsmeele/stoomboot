@@ -19,7 +19,7 @@ typedef enum {
 
 typedef union {
 	char    *valStr;
-	 int32_t valInt32;
+	int32_t  valInt32;
 } ConfigOptionValue;
 
 typedef struct {

@@ -8,17 +8,19 @@
 #include "config.h"
 #include "console.h"
 
-static char optionKernelBuffer[CONFIG_STRING_VALUE_BUFFER_SIZE];
-static char optionInitrdBuffer[CONFIG_STRING_VALUE_BUFFER_SIZE];
+static char optionKernelBuffer[ CONFIG_STRING_VALUE_BUFFER_SIZE];
+static char optionInitrdBuffer[ CONFIG_STRING_VALUE_BUFFER_SIZE];
+static char optionCmdLineBuffer[CONFIG_STRING_VALUE_BUFFER_SIZE];
 
 ConfigOption configOptions[] = {
-	{ "timeout",      CONFIG_OPTION_TYPE_INT32,  .value.valInt32 = -1                 },
-	{ "kernel",       CONFIG_OPTION_TYPE_STRING, .value.valStr   = optionKernelBuffer },
-	{ "initrd",       CONFIG_OPTION_TYPE_STRING, .value.valStr   = optionInitrdBuffer },
-	{ "video-width",  CONFIG_OPTION_TYPE_INT32,  .value.valInt32 = 0                  },
-	{ "video-height", CONFIG_OPTION_TYPE_INT32,  .value.valInt32 = 0                  },
-	{ "video-bbp",    CONFIG_OPTION_TYPE_INT32,  .value.valInt32 = 0                  },
-	{ "video-mode",   CONFIG_OPTION_TYPE_INT32,  .value.valInt32 = 0                  },
+	{ "timeout",      CONFIG_OPTION_TYPE_INT32,  .value.valInt32 = -1                  },
+	{ "kernel",       CONFIG_OPTION_TYPE_STRING, .value.valStr   = optionKernelBuffer  },
+	{ "initrd",       CONFIG_OPTION_TYPE_STRING, .value.valStr   = optionInitrdBuffer  },
+	{ "cmdline",      CONFIG_OPTION_TYPE_STRING, .value.valStr   = optionCmdLineBuffer },
+	{ "video-width",  CONFIG_OPTION_TYPE_INT32,  .value.valInt32 = 0                   },
+	{ "video-height", CONFIG_OPTION_TYPE_INT32,  .value.valInt32 = 0                   },
+	{ "video-bbp",    CONFIG_OPTION_TYPE_INT32,  .value.valInt32 = 0                   },
+	{ "video-mode",   CONFIG_OPTION_TYPE_INT32,  .value.valInt32 = 0                   },
 };
 const size_t configOptionCount = ELEMS(configOptions);
 
@@ -53,6 +55,7 @@ void setConfigOption(const char *key, ConfigOptionValue value) {
 }
 
 void initConfig() {
-	optionKernelBuffer[0] = '\0';
-	optionInitrdBuffer[0] = '\0';
+	optionKernelBuffer[0]  = '\0';
+	optionInitrdBuffer[0]  = '\0';
+	optionCmdLineBuffer[0] = '\0';
 }

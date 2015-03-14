@@ -11,6 +11,9 @@ set kernel /boot/havik32.elf
 ## Initial ramdisks are currently not supported.
 #set initrd hd0:0:/boot/initrd32.elf
 
+## Parameters to be passed to the kernel.
+set cmdline Hello\ kernel\ world!
+
 ## Automatically boot the set kernel option after `timeout` seconds.
 ## The user can press <Esc> to abort and load a shell.
 ## If timeout is -1, a shell is started immediately.
