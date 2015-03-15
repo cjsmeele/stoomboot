@@ -106,9 +106,7 @@ Command commands[] = {
 
 CMD_DEF(boot) {
 	ConfigOption *kernelOption = getConfigOption("kernel");
-	assert(kernelOption != NULL && kernelOption->type == CONFIG_OPTION_TYPE_STRING);
 	ConfigOption *initrdOption = getConfigOption("initrd");
-	assert(initrdOption != NULL && initrdOption->type == CONFIG_OPTION_TYPE_STRING);
 
 	if (strlen(kernelOption->value.valStr)) {
 		BootOption bootOption;
@@ -127,9 +125,7 @@ CMD_DEF(boot) {
 		return 1;
 
 	} else if(interactive) {
-		printf("Please set the `kernel' option first. For example:\n");
-		printf("  set kernel hd0:0:/boot/kernel.elf\n");
-		printf("  set kernel FSLABEL=HAVIK:/boot/kernel.elf\n");
+		printf("Please set the `kernel' option first.\n");
 		return 1;
 	} else {
 		printf("error: `boot' without a kernel option set\n");
@@ -245,8 +241,8 @@ CMD_DEF(help) {
 
 	if (argc == 1) {
 		printf("Type `help [FUNCTION]' for information on that function.\n");
-		printf("Spaces in parameters must be escaped with `\\' (quoting is not allowed).\n");
-		printf("The following commands are supported by the bootloader:\n\n");
+		printf("Escape spaces in parameters with `\\'.\n");
+		printf("The following commands are supported:\n\n");
 
 		for (size_t i=0; i<ELEMS(commands); i+=5) {
 			for (size_t j=0; j<MIN(ELEMS(commands) - i, 5); j++)
@@ -376,7 +372,6 @@ CMD_DEF(unset) {
 		printf("usage: unset [OPTION]\n");
 		return 1;
 	} else {
-		printf("warning: Invalid unset command ignored\n");
 		return 1;
 	}
 }

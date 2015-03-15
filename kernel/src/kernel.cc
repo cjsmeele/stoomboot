@@ -42,15 +42,15 @@ extern "C" void main(unsigned int loaderMagic, unsigned int bootInfoPtr) {
 		vram[i] = 0x00 << 8 | ' ';
 
 	for (unsigned int i=0; i<sizeof(splash); i++)
-		vram[i] = (short)((splash[i] == ' ' ? 0x99 : 0x9f) << 8 | splash[i]);
+		vram[i] = (short)((splash[i] == ' ' ? 0x11 : 0x1f) << 8 | splash[i]);
 
 	for (unsigned int i=0; i<50; i++)
-		vram[12*80 + 15 + i] = (short)0x9fc4;
+		vram[12*80 + 15 + i] = (short)0x1fc4;
 
-	vram[ 1*80 +  1] = (short)0x9f01;
-	vram[ 1*80 + 78] = (short)0x9f01;
-	vram[23*80 +  1] = (short)0x9f01;
-	vram[23*80 + 78] = (short)0x9f01;
+	vram[ 1*80 +  2] = (short)0x1f01;
+	vram[ 1*80 + 77] = (short)0x1f01;
+	vram[23*80 +  2] = (short)0x1f01;
+	vram[23*80 + 77] = (short)0x1f01;
 
 	for (;;)
 		asm volatile (

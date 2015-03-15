@@ -26,7 +26,7 @@ int makeMemMap() {
 				  "+a" (success)
 				: "c" (0x00000020), // Buffer size.
 				  "d" (0x534d4150), // "SMAP".
-				  "D" (&memMap.regions[i])
+				  "D" (&memMap.regions[i].start)
 				: "cc", "memory"
 			);
 
@@ -35,6 +35,9 @@ int makeMemMap() {
 
 			// Skip zero-length entries.
 		} while (!memMap.regions[i].length);
+
+		memMap.regions[i]._size = 20;
+		memMap.regionCount++;
 
 		if (contVal == 0)
 			// Indicates end of list.

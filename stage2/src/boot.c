@@ -11,6 +11,7 @@
 #include "elf.h"
 #include "config.h"
 #include "vbe.h"
+#include "multiboot.h"
 #include "stage2.h"
 
 void boot(BootOption *bootOption) {
@@ -51,6 +52,11 @@ void boot(BootOption *bootOption) {
 			if (mode != 0xffff)
 				modeSet = !vbeSetMode(mode);
 		}
+
+		// Note: We do not read the kernel's multiboot header; We simply assume that
+		//       the kernel will be an ELF image and supply a memory map.
+		//       Any video mode switching must be specified in the loader.rc file.
+		generateMultibootInfo(kernelPartition);
 
 		loadElf(&fileInfo);
 

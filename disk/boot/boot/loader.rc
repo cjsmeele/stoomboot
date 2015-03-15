@@ -19,7 +19,7 @@ set cmdline Hello\ kernel\ world!
 ## If timeout is -1, a shell is started immediately.
 ## If timeout is 0, the kernel is booted without a delay.
 #set timeout 3
-set timeout 0
+set timeout 1
 
 ## Uncomment either width and height (and optionally bbp) or video-mode to set
 ## a video mode on boot.

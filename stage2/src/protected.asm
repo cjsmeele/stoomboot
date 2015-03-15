@@ -48,10 +48,13 @@ gdtPtr:
 	dw gdt.end - gdt - 1
 	dd gdt
 
+extern multibootInfo
+
 u32_magic:          dd 0x2badb002 ; Claim to be multiboot compliant.
-u32_bootInfoStruct: dd 0x00020000 ; TODO: Generate a multiboot-info structure.
+u32_bootInfoStruct: dd multibootInfo
 
 SECTION .text
+
 
 enterProtectedMode:
 	cli

@@ -68,13 +68,10 @@ void stage2Main(uint32_t bootDiskNo, uint64_t loaderFsId) {
 	}
 
 	ConfigOption *kernelOption = getConfigOption("kernel");
-	assert(kernelOption != NULL);
 	ConfigOption *initrdOption = getConfigOption("initrd");
-	assert(initrdOption != NULL);
 
 	if (strlen(kernelOption->value.valStr)) {
 		ConfigOption *timeoutOption = getConfigOption("timeout");
-		assert(timeoutOption != NULL);
 		if (timeoutOption->value.valInt32 >= 0) {
 
 			bool aborted = false;

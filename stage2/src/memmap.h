@@ -19,6 +19,7 @@
 #define MEMORY_REGION_TYPE_BAD              5
 
 typedef struct {
+	uint32_t _size; ///< Used for multiboot compatibility.
 	uint64_t start;
 	uint64_t length;
 	uint32_t type;
@@ -26,6 +27,7 @@ typedef struct {
 
 typedef struct {
 	MemMapRegion regions[MEMMAP_MAX_REGIONS];
+	uint32_t regionCount;
 } MemMap;
 
 extern MemMap memMap;

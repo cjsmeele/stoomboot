@@ -11,21 +11,6 @@
 
 uint16_t vbeCurrentMode = 0xffff;
 
-typedef struct {
-	char     vbeSignature[4];
-	uint16_t vbeVersion;
-	uint32_t oemStrPtr;
-	uint32_t capabilities;
-	uint32_t videoModePtr;
-	uint16_t totalMemory; ///< In 64K blocks.
-	uint16_t oemSoftwareRev;
-	uint32_t oemVendorNamePtr;
-	uint32_t oemProductNamePtr;
-	uint32_t oemProductRevPtr;
-	uint8_t  _reserved1[222];
-	uint8_t  oemData[256];
-} __attribute__((packed)) VbeInfoBlock;
-
 int vbeGetModeInfo(VbeModeInfoBlock *modeInfo, uint16_t mode) {
 	uint16_t status = 0x4f01;
 	asm volatile (
@@ -43,11 +28,11 @@ int vbeGetModeInfo(VbeModeInfoBlock *modeInfo, uint16_t mode) {
 	}
 }
 
-static int getVbeInfo(VbeInfoBlock *vbeInfo) {
+int vbeGetInfo(VbeInfoBlock *vbeInfo) {
 	memset(vbeInfo, 0, sizeof(VbeInfoBlock));
 
 	// We want VBE v2 information.
-	strncpy(vbeInfo->vbeSignature, "VBE2", 3);
+	strncpy(vbeInfo->vbeSignature, "VBE2", 4);
 
 	uint16_t status = 0x4f00;
 	asm volatile (
@@ -60,14 +45,14 @@ static int getVbeInfo(VbeInfoBlock *vbeInfo) {
 	if (status == 0x004f && strneq(vbeInfo->vbeSignature, "VESA", 4)) {
 		return 0;
 	} else {
-		printf("VBE seems to be unsupported on your system (AX=%04xh)\n", status);
+		printf("VBE is not supported (AX=%04xh)\n", status);
 		return -1;
 	}
 }
 
 uint16_t vbeGetModeFromModeInfo(uint32_t width, uint32_t height, uint32_t bbp) {
 	VbeInfoBlock vbeInfo;
-	if (getVbeInfo(&vbeInfo))
+	if (vbeGetInfo(&vbeInfo))
 		return 0xffff;
 
 	uint16_t *vbeModeList = (uint16_t*)vbeInfo.videoModePtr;
@@ -91,10 +76,7 @@ uint16_t vbeGetModeFromModeInfo(uint32_t width, uint32_t height, uint32_t bbp) {
 			mode = *vbeModeList;
 		}
 
-		if (mode == 0xffff)
-			break;
-
-		if (vbeGetModeInfo(&modeInfo, mode))
+		if (mode == 0xffff || vbeGetModeInfo(&modeInfo, mode))
 			break;
 
 		if (
@@ -139,7 +121,7 @@ void vbeDumpModes() {
 
 	VbeInfoBlock vbeInfo;
 
-	if (getVbeInfo(&vbeInfo))
+	if (vbeGetInfo(&vbeInfo))
 		return;
 
 	vbeModeList = (uint16_t*)vbeInfo.videoModePtr;

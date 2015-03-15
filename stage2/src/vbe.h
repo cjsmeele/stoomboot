@@ -13,6 +13,21 @@
 extern uint16_t vbeCurrentMode;
 
 typedef struct {
+	char     vbeSignature[4];
+	uint16_t vbeVersion;
+	uint32_t oemStrPtr;
+	uint32_t capabilities;
+	uint32_t videoModePtr;
+	uint16_t totalMemory; ///< In 64K blocks.
+	uint16_t oemSoftwareRev;
+	uint32_t oemVendorNamePtr;
+	uint32_t oemProductNamePtr;
+	uint32_t oemProductRevPtr;
+	uint8_t  _reserved1[222];
+	uint8_t  oemData[256];
+} __attribute__((packed)) VbeInfoBlock;
+
+typedef struct {
 	union {
 		struct {
 			bool attrSupported                     : 1;
@@ -78,6 +93,15 @@ typedef struct {
  * \return a mode number, or 0xffff on failure
  */
 uint16_t vbeGetModeFromModeInfo(uint32_t width, uint32_t height, uint32_t bbp);
+
+/**
+ * \brief Get VBE controller info.
+ *
+ * \param vbeInfo
+ *
+ * \return zero on success, non-zero on failure
+ */
+int vbeGetInfo(VbeInfoBlock *vbeInfo);
 
 /**
  * \brief Sets a video mode.

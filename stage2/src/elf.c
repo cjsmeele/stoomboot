@@ -141,20 +141,6 @@ int loadElf(FileInfo *file) {
 		return -1;
 	}
 
-	printf(
-		"Kernel is %s-bit, %s-endian\n",
-		header32->ident.class == 2
-			? "64"
-			: header32->ident.class == 1
-				? "32"
-				: "??",
-		header32->ident.endianness == 2
-			? "big"
-			: header32->ident.endianness  == 1
-				? "little"
-				: "?"
-	);
-
 	if (
 		   header32->ident.class       < 1 || header32->ident.class > 2
 		|| header32->ident.endianness != 1
@@ -195,13 +181,6 @@ int loadElf(FileInfo *file) {
 		printf("error: ELF program header too large > 2048.\n");
 		return -1;
 	}
-
-	printf(
-		"PH table offset: %#08x, entry size: %u, count: %u\n",
-		(uint32_t)phOff,
-		(uint32_t)phEntSize,
-		(uint32_t)phNum
-	);
 
 	struct {
 		uint32_t fileOffset;
@@ -258,13 +237,11 @@ int loadElf(FileInfo *file) {
 		Elf64PhEntry *phEnt64 = (Elf64PhEntry*)phBuffer;;
 
 		uint32_t type   = is64 ? phEnt64->type   : phEnt32->type;
-		printf("- Pogram Header found: type: %u\n", type);
 
 		uint64_t offset   = is64 ? phEnt64->offset   : phEnt32->offset;
 		uint64_t vaddr    = is64 ? phEnt64->vAddr    : phEnt32->vAddr;
 		uint64_t sizeFile = is64 ? phEnt64->sizeFile : phEnt32->sizeFile;
 		uint64_t sizeMem  = is64 ? phEnt64->sizeMem  : phEnt32->sizeMem;
-		uint32_t flags    = is64 ? phEnt64->flags    : phEnt32->flags;
 
 		if (type == 1) { // 1 == PT_LOAD.
 			loadableSegments[phEntriesProcessed].memAddr    = (uint32_t)vaddr;
@@ -277,24 +254,6 @@ int loadElf(FileInfo *file) {
 
 		if (type != 1)
 			continue;
-
-		printf(
-			"  - Load %#08x -> %#08x.%08x (%u -> %u bytes) [%c%c%c]\n",
-			(uint32_t)offset,
-			(uint32_t)(vaddr >> 32),
-			(uint32_t)vaddr,
-			(uint32_t)sizeFile,
-			(uint32_t)sizeMem,
-			flags & 4
-				? 'r'
-				: '-',
-			flags & 2
-				? 'w'
-				: '-',
-			flags & 1
-				? 'x'
-				: '-'
-		);
 	}
 
 	if (phEntriesProcessed != phNum) {
@@ -302,15 +261,13 @@ int loadElf(FileInfo *file) {
 		return -1;
 	}
 
-	/// @todo Check memory map before loading kernel segments.
+	/// \todo Check memory map before loading kernel segments.
 
 	uint8_t segmentBuffer[512];
 
 	for (uint32_t i=0; i<phNum; i++) {
 		if (!loadableSegments[i].memAddr || !loadableSegments[i].memSize)
 			continue;
-
-		printf("Loading PT_LOAD segment at %#08x\n", loadableSegments[i].memAddr);
 
 		if (loadableSegments[i].fileOffset && loadableSegments[i].fileSize) {
 			while (
@@ -348,6 +305,8 @@ int loadElf(FileInfo *file) {
 
 						bytesRead += part->disk->blockSize;
 						bufferOff = 0;
+						if (!(bytesRead % 2048))
+							putch('.');
 					}
 					segmentBuffer[k] = buffer[bufferOff++];
 				}
@@ -357,18 +316,10 @@ int loadElf(FileInfo *file) {
 					MIN(ELEMS(segmentBuffer), loadableSegments[i].fileSize - j)
 				);
 			}
+
+			/// \todo Clear remaining segment memory.
 		}
 	}
-
-	printf("\nKernel loaded, ready to jump to entrypoint at %#08x.\n", (uint32_t)entryPoint);
-	printf("See you on the other side!\n\n");
-
-	printf("-- press any key to jump --");
-
-	Key key;
-	getKey(&key, true);
-
-	printf("\r%40s\r", "");
 
 	enterProtectedMode(entryPoint);
 
