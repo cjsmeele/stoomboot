@@ -14,7 +14,9 @@ system, for fun!
 
 This project consists of the following components:
 
-- A two-stage bootloader with FAT32 support
+- A two-stage bootloader with FAT32 support and partial
+  [multiboot](http://www.gnu.org/software/grub/manual/multiboot/multiboot.html)
+  compliancy
 - A microkernel that supports paged memory management, preemptive multitasking,
   and a good IPC system
 - Drivers for disk access, graphics, and more
@@ -31,7 +33,6 @@ Feature / Component          | Status
 -- Console I/O               | Done
 -- Disk I/O                  | Done
 -- MBR part-table parsing    | Done
--- GPT part-table parsing    | Optional, unimplemented
 -- FAT32 driver              | Done
 -- Config file support       | Done
 -- Command-line              | Done
@@ -39,7 +40,7 @@ Feature / Component          | Status
 -- ELF loading               | Done
 -- Video mode setting        | Done
 -- Protected mode switch     | Done
--- Multiboot info generation | In progress
+-- Multiboot info generation | Done
 *Kernel*                     |
 -- "Hello world"             | Done
 -- ...                       |
