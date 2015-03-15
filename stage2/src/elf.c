@@ -8,7 +8,7 @@
 #include "elf.h"
 #include "disk/disk.h"
 #include "console.h"
-#include "dump.h"
+#include "memmap.h"
 #include "far.h"
 #include "protected.h"
 
@@ -118,18 +118,14 @@ int loadElf(FileInfo *file) {
 	Partition *part = file->partition;
 	uint8_t buffer[part->disk->blockSize];
 
-	if (file->size < sizeof(Elf64Header)) {
-		printf("ELF binary too small\n");
-		return -1;
-	}
+	if (file->size < sizeof(Elf64Header))
+		goto readError;
 
 	size_t bytesRead = 0;
 
 	int ret = part->fsDriver->readFileBlock(file, buffer);
-	if (ret != FS_SUCCESS) {
-		printf("Could not read ELF binary");
-		return -1;
-	}
+	if (ret != FS_SUCCESS)
+		goto readError;
 
 	bytesRead += part->disk->blockSize;
 
@@ -159,12 +155,12 @@ int loadElf(FileInfo *file) {
 	uint16_t objType    = is64 ? header64->type      : header32->type;
 
 	if (objType != 2) {
-		printf("error: ELF binary is not executable.\n");
+		printf("error: ELF is not executable.\n");
 		return -1;
 	}
 
 	if (phOff >> 32) {
-		printf("error: ELF binary too large (phOff >> 32).\n");
+		printf("error: ELF too large (phOff >> 32).\n");
 		return -1;
 	}
 
@@ -182,146 +178,146 @@ int loadElf(FileInfo *file) {
 		return -1;
 	}
 
-	struct {
-		uint32_t fileOffset;
-		uint32_t memAddr;
-		uint32_t fileSize;
-		uint32_t memSize;
-	} loadableSegments[phNum];
+	{
+		struct {
+			uint32_t fileOffset;
+			uint32_t memAddr;
+			uint32_t fileSize;
+			uint32_t memSize;
+		} loadableSegments[phNum];
 
-	memset(loadableSegments, 0, sizeof(loadableSegments));
+		memset(loadableSegments, 0, sizeof(loadableSegments));
 
-	uint8_t  phBuffer[phEntSize];
-	uint32_t phEntriesProcessed = 0;
-	uint32_t bufferOff   = 0;
+		uint8_t  phBuffer[phEntSize];
+		uint32_t phEntriesProcessed = 0;
+		uint32_t bufferOff   = 0;
 
-	while (
-		bytesRead < phOff
-		+ ((uint32_t)phOff % part->disk->blockSize ? 0 : 1)
-	) {
-		if (bytesRead >= file->size) {
-			printf("error: Unexpected EOF in ELF file\n");
-			return -1;
+		while (
+			bytesRead < phOff
+			+ ((uint32_t)phOff % part->disk->blockSize ? 0 : 1)
+		) {
+			if (bytesRead >= file->size)
+				goto readError;
+
+			if (part->fsDriver->readFileBlock(file, buffer) != FS_SUCCESS)
+				goto readError;
+
+			bytesRead += part->disk->blockSize;
 		}
 
-		if (part->fsDriver->readFileBlock(file, buffer) != FS_SUCCESS) {
-			printf("error: Could not read ELF binary\n");
-			return -1;
-		}
+		bufferOff = (uint32_t)phOff % part->disk->blockSize;
 
-		bytesRead += part->disk->blockSize;
-	}
+		for (uint32_t i=0; i<phNum; i++) {
+			for (uint32_t j=0; j<phEntSize; j++) {
+				if (bufferOff >= MIN(part->disk->blockSize, file->size - (bytesRead - part->disk->blockSize))) {
+					if (bytesRead >= file->size)
+						goto readError;
 
-	bufferOff = (uint32_t)phOff % part->disk->blockSize;
+					if (part->fsDriver->readFileBlock(file, buffer) != FS_SUCCESS)
+						goto readError;
 
-	for (uint32_t i=0; i<phNum; i++) {
-		for (uint32_t j=0; j<phEntSize; j++) {
-			if (bufferOff >= MIN(part->disk->blockSize, file->size - (bytesRead - part->disk->blockSize))) {
-				if (bytesRead >= file->size) {
-					printf("error: Unexpected EOF in ELF file\n");
-					return -1;
+					bytesRead += part->disk->blockSize;
+					bufferOff = 0;
 				}
-
-				if (part->fsDriver->readFileBlock(file, buffer) != FS_SUCCESS) {
-					printf("error: Could not read ELF binary\n");
-					return -1;
-				}
-
-				bytesRead += part->disk->blockSize;
-				bufferOff = 0;
+				phBuffer[j] = buffer[bufferOff++];
 			}
-			phBuffer[j] = buffer[bufferOff++];
+
+			Elf32PhEntry *phEnt32 = (Elf32PhEntry*)phBuffer;
+			Elf64PhEntry *phEnt64 = (Elf64PhEntry*)phBuffer;;
+
+			uint32_t type   = is64 ? phEnt64->type   : phEnt32->type;
+
+			uint64_t offset   = is64 ? phEnt64->offset   : phEnt32->offset;
+			uint64_t vaddr    = is64 ? phEnt64->vAddr    : phEnt32->vAddr;
+			uint64_t sizeFile = is64 ? phEnt64->sizeFile : phEnt32->sizeFile;
+			uint64_t sizeMem  = is64 ? phEnt64->sizeMem  : phEnt32->sizeMem;
+
+			if (type == 1) { // 1 == PT_LOAD.
+				loadableSegments[phEntriesProcessed].memAddr    = (uint32_t)vaddr;
+				loadableSegments[phEntriesProcessed].memSize    = (uint32_t)sizeMem;
+				loadableSegments[phEntriesProcessed].fileOffset = (uint32_t)offset;
+				loadableSegments[phEntriesProcessed].fileSize   = (uint32_t)sizeFile;
+
+				if (!isMemAvailable(vaddr, sizeMem)) {
+					printf(
+						"error: Insufficient available memory for segment %#08x-%#08x\n",
+						loadableSegments[phEntriesProcessed].memAddr,
+						loadableSegments[phEntriesProcessed].memSize
+					);
+					return -1;
+				}
+			}
+
+			phEntriesProcessed++;
+
+			if (type != 1)
+				continue;
 		}
 
-		Elf32PhEntry *phEnt32 = (Elf32PhEntry*)phBuffer;
-		Elf64PhEntry *phEnt64 = (Elf64PhEntry*)phBuffer;;
-
-		uint32_t type   = is64 ? phEnt64->type   : phEnt32->type;
-
-		uint64_t offset   = is64 ? phEnt64->offset   : phEnt32->offset;
-		uint64_t vaddr    = is64 ? phEnt64->vAddr    : phEnt32->vAddr;
-		uint64_t sizeFile = is64 ? phEnt64->sizeFile : phEnt32->sizeFile;
-		uint64_t sizeMem  = is64 ? phEnt64->sizeMem  : phEnt32->sizeMem;
-
-		if (type == 1) { // 1 == PT_LOAD.
-			loadableSegments[phEntriesProcessed].memAddr    = (uint32_t)vaddr;
-			loadableSegments[phEntriesProcessed].memSize    = (uint32_t)sizeMem;
-			loadableSegments[phEntriesProcessed].fileOffset = (uint32_t)offset;
-			loadableSegments[phEntriesProcessed].fileSize   = (uint32_t)sizeFile;
+		if (phEntriesProcessed != phNum) {
+			printf("error: Failed to read all program header entries\n");
+			return -1;
 		}
 
-		phEntriesProcessed++;
+		uint8_t segmentBuffer[512];
 
-		if (type != 1)
-			continue;
-	}
+		for (uint32_t i=0; i<phNum; i++) {
+			if (!loadableSegments[i].memAddr || !loadableSegments[i].memSize)
+				continue;
 
-	if (phEntriesProcessed != phNum) {
-		printf("error: Failed to read all program header entries\n");
+			if (loadableSegments[i].fileOffset && loadableSegments[i].fileSize) {
+				while (
+					bytesRead <
+						  loadableSegments[i].fileOffset
+						+ (loadableSegments[i].fileOffset % part->disk->blockSize ? 0 : 1)
+				) {
+					if (bytesRead >= file->size)
+						goto readError;
+
+					if (part->fsDriver->readFileBlock(file, buffer) != FS_SUCCESS)
+						goto readError;
+
+					bytesRead += part->disk->blockSize;
+				}
+
+				bufferOff = (uint32_t)loadableSegments[i].fileOffset % part->disk->blockSize;
+
+				for (uint32_t j=0; j<loadableSegments[i].fileSize; j += ELEMS(segmentBuffer)) {
+					for (uint32_t k=0; k<ELEMS(segmentBuffer); k++) {
+						if (bufferOff >= MIN(part->disk->blockSize, file->size - (bytesRead - part->disk->blockSize))) {
+							if (bytesRead >= file->size)
+								goto readError;
+
+							if (part->fsDriver->readFileBlock(file, buffer) != FS_SUCCESS)
+								goto readError;
+
+							bytesRead += part->disk->blockSize;
+							bufferOff = 0;
+							if (!(bytesRead % 2048))
+								putch('.');
+						}
+						segmentBuffer[k] = buffer[bufferOff++];
+					}
+					farcpy(
+						loadableSegments[i].memAddr + j,
+						(uint32_t)segmentBuffer,
+						MIN(ELEMS(segmentBuffer), loadableSegments[i].fileSize - j)
+					);
+				}
+			}
+
+			farzero(
+				loadableSegments[i].memAddr + loadableSegments[i].fileSize,
+				loadableSegments[i].memSize - loadableSegments[i].fileSize
+			);
+		}
+
+		enterProtectedMode(entryPoint);
+
 		return -1;
 	}
 
-	/// \todo Check memory map before loading kernel segments.
-
-	uint8_t segmentBuffer[512];
-
-	for (uint32_t i=0; i<phNum; i++) {
-		if (!loadableSegments[i].memAddr || !loadableSegments[i].memSize)
-			continue;
-
-		if (loadableSegments[i].fileOffset && loadableSegments[i].fileSize) {
-			while (
-				bytesRead <
-					  loadableSegments[i].fileOffset
-					+ (loadableSegments[i].fileOffset % part->disk->blockSize ? 0 : 1)
-			) {
-				if (bytesRead >= file->size) {
-					printf("error: Unexpected EOF in ELF file\n");
-					return -1;
-				}
-
-				if (part->fsDriver->readFileBlock(file, buffer) != FS_SUCCESS) {
-					printf("error: Could not read ELF binary\n");
-					return -1;
-				}
-
-				bytesRead += part->disk->blockSize;
-			}
-
-			bufferOff = (uint32_t)loadableSegments[i].fileOffset % part->disk->blockSize;
-
-			for (uint32_t j=0; j<loadableSegments[i].fileSize; j += ELEMS(segmentBuffer)) {
-				for (uint32_t k=0; k<ELEMS(segmentBuffer); k++) {
-					if (bufferOff >= MIN(part->disk->blockSize, file->size - (bytesRead - part->disk->blockSize))) {
-						if (bytesRead >= file->size) {
-							printf("error: Unexpected EOF in ELF file\n");
-							return -1;
-						}
-
-						if (part->fsDriver->readFileBlock(file, buffer) != FS_SUCCESS) {
-							printf("error: Could not read ELF binary\n");
-							return -1;
-						}
-
-						bytesRead += part->disk->blockSize;
-						bufferOff = 0;
-						if (!(bytesRead % 2048))
-							putch('.');
-					}
-					segmentBuffer[k] = buffer[bufferOff++];
-				}
-				farcpy(
-					loadableSegments[i].memAddr + j,
-					(uint32_t)segmentBuffer,
-					MIN(ELEMS(segmentBuffer), loadableSegments[i].fileSize - j)
-				);
-			}
-
-			/// \todo Clear remaining segment memory.
-		}
-	}
-
-	enterProtectedMode(entryPoint);
-
+readError:
+	printf("error: Could not read ELF binary\n");
 	return -1;
 }

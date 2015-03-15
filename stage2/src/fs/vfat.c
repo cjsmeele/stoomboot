@@ -227,7 +227,7 @@ static int vfatInit (VfatPartData *partData, Partition *part) {
 	const BiosParameterBlock *bpb = (BiosParameterBlock*)bpbBuffer;
 
 	if (bpb->blockSize != part->disk->blockSize) {
-		printf("warning: vfat block size (%u) does not match disk block size (%u). FS dropped.\n", bpb->blockSize, part->disk->blockSize);
+		printf("error: Unmatched vfat block size (%u != %u).\n", bpb->blockSize, part->disk->blockSize);
 		return -1;
 	}
 

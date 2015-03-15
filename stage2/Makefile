@@ -78,6 +78,7 @@ ASFLAGS := -f elf32
 CFLAGS  := \
 	-fdiagnostics-color=auto \
 	-Os \
+	-g0 \
 	-m16 \
 	-nostdlib \
 	-ffreestanding \

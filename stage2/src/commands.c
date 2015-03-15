@@ -54,8 +54,8 @@ Command commands[] = {
 	CMD_INCLUDE(
 		help,
  "usage: help [FUNCTION]\
-\nShows a list of commands, or, when a function name is given, the help text\
-\nassociated with the given function name.\
+\nShows a list of commands, or the help text associated with the given\
+\nfunction name.\
 \n"
 	),
 	CMD_INCLUDE(
@@ -93,7 +93,7 @@ Command commands[] = {
 	{
 		"vbe-set",
  "usage: vbe-set (MODE | WIDTH HEIGHT [BBP])\
-\nChanges video mode to the specified mode, if possible.\
+\nChanges video mode to the specified mode.\
 \n",
 		CMD_FUNCTION(vbe_set)
 	},
@@ -144,7 +144,7 @@ CMD_DEF(cls) {
 
 static void printDiskInfo(Disk *disk) {
 	if (!disk->available) {
-		printf("Disk hd%u is unavailable, possibly due to I/O errors.\n", disk->diskNo);
+		printf("Disk hd%u is unavailable.\n", disk->diskNo);
 		return;
 	}
 
@@ -202,7 +202,7 @@ CMD_DEF(disk_info) {
 		return 1;
 
 	if (argc == 1) {
-		printf("A total of %u disks were detected.\n", diskCount);
+		printf("%u disks were detected.\n", diskCount);
 		return 0;
 	} else if (argc == 2) {
 		uint32_t diskNo = atoi(argv[1]);
@@ -240,7 +240,7 @@ CMD_DEF(help) {
 		return 1;
 
 	if (argc == 1) {
-		printf("Type `help [FUNCTION]' for information on that function.\n");
+		printf("Type `help FUNCTION' for information on that function.\n");
 		printf("Escape spaces in parameters with `\\'.\n");
 		printf("The following commands are supported:\n\n");
 
@@ -393,7 +393,7 @@ CMD_DEF(vbe_set) {
 				: 0
 		);
 		if (mode == 0xffff) {
-			printf("The requested video mode is not supported\n");
+			printf("Video mode not supported\n");
 			return 1;
 		}
 		return vbeSetMode(mode);

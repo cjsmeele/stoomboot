@@ -33,6 +33,16 @@ typedef struct {
 extern MemMap memMap;
 
 /**
+ * \brief Checks if a memory region is available according to the BIOS.
+ *
+ * \param start
+ * \param length
+ *
+ * \return
+ */
+bool isMemAvailable(uint64_t start, uint64_t length);
+
+/**
  * \brief Makes a memory map using BIOS calls.
  *
  * \return zero on success, non-zero if the int 15h 0xe820 BIOS call is unsupported.

@@ -113,7 +113,7 @@ static size_t printfDecimal(uint32_t num, bool sign, PrintfFlags *flags, size_t 
 		num = abs((int32_t)num);
 	}
 
-	static char buffer[14] = { };
+	char buffer[14] = { };
 	size_t i = 13;
 
 	do {
@@ -152,7 +152,7 @@ static size_t printfDecimal(uint32_t num, bool sign, PrintfFlags *flags, size_t 
 static size_t printfHex(uint32_t num, PrintfFlags *flags, size_t width) {
 	size_t length = 0;
 
-	static char buffer[20] = { };
+	char buffer[20] = { };
 	size_t i = 19;
 
 	bool groupCharAdded = false;
@@ -220,8 +220,8 @@ int printf(const char *format, ...) {
 
 	bool inFormat = false;
 	size_t width  = 0; ///< Minimum formatted text length.
-	static char widthBuffer[9] = { };
-	size_t widthBufferIndex    = 0;
+	char   widthBuffer[9]   = { };
+	size_t widthBufferIndex = 0;
 
 	// }
 

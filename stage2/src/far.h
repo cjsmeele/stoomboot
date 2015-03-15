@@ -35,4 +35,12 @@ void farcpy(uint32_t dest, uint32_t src, uint32_t length);
 		(length) \
 	)
 
+/**
+ * \brief Zeroes memory.
+ *
+ * \param dest
+ * \param length
+ */
+void farzero(uint32_t dest, uint32_t length);
+
 #endif /* _FAR_H */

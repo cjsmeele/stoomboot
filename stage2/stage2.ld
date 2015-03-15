@@ -22,19 +22,19 @@ SECTIONS {
 		_RODATA_END = .;
 	}
 
-	.data ALIGN (0x10) : {
-		_DATA_START = .;
-		*(.data)
-		*(.gnu.linkonce.d*)
-		_DATA_END = .;
-	}
-
 	.bss ALIGN (0x10) : {
 		_BSS_START = .;
 		*(COMMON)
 		*(.bss)
 		*(.gnu.linkonce.b*)
 		_BSS_END = .;
+	}
+
+	.data ALIGN (0x10) : {
+		_DATA_START = .;
+		*(.data)
+		*(.gnu.linkonce.d*)
+		_DATA_END = .;
 	}
 
 	/DISCARD/ : {

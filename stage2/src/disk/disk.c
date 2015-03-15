@@ -19,7 +19,7 @@ Disk     disks[DISK_MAX_DISKS];
  */
 typedef struct {
 	uint16_t bufferSize;
-	uint16_t flags;               ///< @todo Bitfieldify?
+	uint16_t flags;               ///< \todo Bitfieldify?
 	uint32_t physCylinders;       ///< CHS stuff, do not use.
 	uint32_t physHeads;           ///< CHS stuff, do not use.
 	uint32_t physSectorsPerTrack; ///< CHS stuff, do not use.
@@ -80,17 +80,9 @@ Partition *getPartitionByFsLabel(const char *fsLabel) {
 
 int diskRead(Disk *disk, uint64_t dest, uint64_t lba, uint64_t blockCount) {
 
-	/**
-	 * @note Using the 64-bit flat address doesn't seem to work in qemu and bochs.
-	 *       Perhaps this is caused by the A20 gate which we haven't yet enabled?
-	 *       Anyway, it might be best to load data piece by piece in conventional
-	 *       memory and use "unreal mode" to copy it over to higher memory.
-	 */
+	/// \note Using the 64-bit flat address doesn't seem to work in qemu and bochs.
 
-	/// @todo Allow reading more than 127 blocks at once.
-
-	if (blockCount > 127)
-		panic("Reading more than 127 blocks at once is not yet supported.");
+	assert(blockCount <= 127);
 
 	if (dest + (blockCount * disk->blockSize) >= 0x100000)
 		panic("Reading from disk to extended memory is not supported.");
@@ -179,7 +171,7 @@ static int diskGetParams(Disk *disk) {
 	errorCode >>= 8;
 
 	if (errorCode) {
-		printf("warning: Could not get drive parameters for drive %02xh, error code %02xh\n", disk->biosId, errorCode);
+		printf("warning: Could not get drive parameters for drive %02xh, error %02xh\n", disk->biosId, errorCode);
 		return -1;
 	}
 
@@ -242,8 +234,10 @@ static int diskScan(Disk *disk) {
 			break;
 		} else if (ret == DISK_PART_SCAN_ERR_CORRUPT) {
 			// The partition table was recognized by the scanner, but contains errors.
-			printf("warning: Partition table for disk %02xh was recognized as '%s' but corrupt\n",
-				disk->biosId, diskScanners[i].name);
+			printf(
+				"warning: Partition table for disk %02xh is corrupt\n",
+				disk->biosId
+			);
 			break;
 		} else if (ret == DISK_PART_SCAN_ERR_IO) {
 			// No use in retrying different scanners on a bad disk.
@@ -255,7 +249,7 @@ static int diskScan(Disk *disk) {
 	}
 
 	if (ret == DISK_PART_SCAN_ERR_TRY_OTHER) {
-		printf("warning: Could not detect a valid partition table on disk %02xh\n", disk->biosId);
+		printf("warning: Could not detect partition table on disk %02xh\n", disk->biosId);
 		return 0; // No partitions detected, but we might want to chainload.
 	} else if (ret == DISK_PART_SCAN_ERR_CORRUPT) {
 		return 0; // .
@@ -296,8 +290,6 @@ int disksDiscover() {
 			printf("warning: No partitions found on disk %02xh\n", disks[i].biosId);
 			availableDisks++; // We might want to chainload to this disk.
 
-		} else {
-			printf("warning: An error occurred while scanning disk %02xh\n", disks[i].biosId);
 		}
 	}
 

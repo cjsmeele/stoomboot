@@ -164,7 +164,7 @@ int parseBootPathString(BootFilePath *bootFile, char *str) {
 			bootFile->path      = str;
 			bootFile->partition = loaderPart;
 		} else {
-			printf("error: No loader FS detected - partition relative boot file path is invalid\n");
+			printf("error: Boot file path is incomplete\n");
 			return 1;
 		}
 	} else {

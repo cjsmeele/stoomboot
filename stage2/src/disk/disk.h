@@ -12,7 +12,7 @@
 #include "fs/fs.h"
 
 #define DISK_MAX_DISKS               4
-#define DISK_MAX_PARTITIONS_PER_DISK 8
+#define DISK_MAX_PARTITIONS_PER_DISK 7
 #define DISK_MAX_BLOCK_SIZE          4096
 
 #define DISK_PART_SCAN_OK             (0)

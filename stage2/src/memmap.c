@@ -10,6 +10,25 @@
 
 MemMap memMap;
 
+bool isMemAvailable(uint64_t start, uint64_t length) {
+	assert(start + length > start);
+
+	for (uint32_t i=0; i<memMap.regionCount; i++) {
+		MemMapRegion region = memMap.regions[i];
+		if (
+			   region.start <= start
+			&& region.start + region.length >= start + length
+			&& region.type == MEMORY_REGION_TYPE_FREE
+		) {
+			// Only return true if a single free mem-map entry exist that covers
+			// the entire queried region.
+			return true;
+			// This assumes no overlapping entries exist.
+		}
+	}
+	return false;
+}
+
 int makeMemMap() {
 	memset(&memMap, 0, sizeof(MemMap));
 	uint32_t contVal = 0;
