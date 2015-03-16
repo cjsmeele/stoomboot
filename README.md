@@ -25,25 +25,35 @@ This project consists of the following components:
 PROJECT STATUS
 --------------
 
-Feature / Component          | Status
----------------------------- | ------
-*Bootloader*                 |
--- Stage 1 MBR               | Done
--- Stage 1 FAT32             | Optional, unimplemented
--- Console I/O               | Done
--- Disk I/O                  | Done
--- MBR part-table parsing    | Done
--- FAT32 driver              | Done
--- Config file support       | Done
--- Command-line              | Done
--- Memory detection          | Done
--- ELF loading               | Done
--- Video mode setting        | Done
--- Protected mode switch     | Done
--- Multiboot info generation | Done
-*Kernel*                     |
--- "Hello world"             | Done
--- ...                       |
+A major milestone was reached on March 15th 2015, when all required bootloader
+features in Havik-Loader were implemented and functioning.
+
+I've decided to take a break from OS development; This project is now on hold,
+possibly for a couple of weeks, maybe for a few months.
+
+In the meantime I will work on other projects and start designing the Havik
+kernel (it's an ambitious project, so simply starting spewing out code wouldn't
+do it much good).
+
+Feature / Component            | Status
+------------------------------ | ------
+*Bootloader*                   |
+-- Stage 1 MBR version         | Done
+-- Stage 1 FAT32 version       | Optional, unimplemented
+-- Console I/O                 | Done
+-- Disk I/O                    | Done
+-- MBR partition-table parsing | Done
+-- FAT32 driver                | Done
+-- Config file support         | Done
+-- Command-line                | Done
+-- Memory detection            | Done
+-- ELF loading                 | Done
+-- Video mode setting          | Done
+-- Protected mode switch       | Done
+-- Multiboot info generation   | Done
+*Kernel*                       |
+-- "Hello world"               | Done
+-- ... (TBD)                   |
 
 HOW TO RUN
 ----------
