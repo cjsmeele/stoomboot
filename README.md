@@ -1,6 +1,8 @@
 STOOMBOOT
 =========
 
+![Picture of a stoomboot](res/stoomboot.png?raw=true)
+
 NAME
 ----
 
