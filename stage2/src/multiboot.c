@@ -13,7 +13,7 @@
 
 struct multiboot_info multibootInfo;
 
-static const char *BOOTLOADER_NAME = "Havik-Loader 0.1";
+static const char *BOOTLOADER_NAME = "Stoomboot 0.1";
 
 static VbeInfoBlock     vbeBootInfo;
 static VbeModeInfoBlock vbeBootModeInfo;

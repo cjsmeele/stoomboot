@@ -14,7 +14,7 @@ endif
 # }}}
 # Package metadata {{{
 
-PACKAGE_NAME    := havik-stage2
+PACKAGE_NAME    := stoomboot-stage2
 PACKAGE_VERSION := $(shell git describe --always --dirty)
 
 ifndef PACKAGE_VERSION

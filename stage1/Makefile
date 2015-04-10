@@ -1,4 +1,4 @@
-# Copyright (c) 2014, Chris Smeele
+# Copyright (c) 2014, 2015, Chris Smeele
 # All rights reserved.
 
 # Parameters {{{
@@ -15,7 +15,7 @@ endif
 # }}}
 # Package metadata {{{
 
-PACKAGE_NAME    := havik-stage1
+PACKAGE_NAME    := stoomboot-stage1
 PACKAGE_VERSION := $(shell git describe --always --dirty)
 
 ifndef PACKAGE_VERSION

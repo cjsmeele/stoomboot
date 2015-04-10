@@ -1,8 +1,0 @@
-set disassembly-flavor intel
-target remote :1234
-break *0x7c00
-continue
-layout split
-focus cmd
-
-echo \nHappy debugging!\n\n

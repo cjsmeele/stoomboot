@@ -1,110 +1,130 @@
-HAVIK
-=====
+STOOMBOOT
+=========
 
 NAME
 ----
 
-Havik - An x86 OS development project
+Stoomboot - An x86 real mode bootloader
 
 DESCRIPTION
 -----------
 
-Havik is yet another attempt at creating a simple but functional x86 operating
-system, for fun!
+Stoomboot is a lightweight bootloader for x86 systems, created because writing
+a bootloader is a fun learning experience!
 
-This project consists of the following components:
+If you're looking for a bootloader for anything other than hobby OS
+development, please have a look at the LIMITATIONS section for issues you might
+encounter if you choose to use Stoomboot.
 
-- A two-stage bootloader with FAT32 support and partial
-  [multiboot](http://www.gnu.org/software/grub/manual/multiboot/multiboot.html)
-  compliancy
-- A microkernel that supports paged memory management, preemptive multitasking,
-  and a good IPC system
-- Drivers for disk access, graphics, and more
-- Some userspace utilities, if we ever get that far :)
+FEATURES
+--------
 
-PROJECT STATUS
---------------
+- More or less Multiboot-compliant
+  - Generates and passes to the kernel a `multiboot_info` structure containing
+    the following information:
+    - Memory map
+    - Commandline
+    - Boot device
+    - VBE mode info, if set
+  - Does not validate or use flags in a multiboot-compliant kernel's multiboot
+    header
+- Completely runs in the first 64K memory segment (~32K stack, ~33K code + data)
+- Supports up to 4 disks with 7 partitions per disk (due to memory constraints)
+- Supports video modesetting using VBE
+- Supports FAT32 filesystems (no LFN support however)
+- Has a commandline interface
+- Loads a configuration file from disk
+- Loads and executes 32-bit ELF binaries from disk
 
-A major milestone was reached on March 15th 2015, when all required bootloader
-features in Havik-Loader were implemented and functioning.
+LIMITATIONS
+-----------
 
-I've decided to take a break from OS development; This project is now on hold,
-possibly for a couple of weeks, maybe for a few months.
+If you need any of the following features, Stoomboot is probably not for you:
 
-In the meantime I will work on other projects and start designing the Havik
-kernel (it's an ambitious project, so simply starting spewing out code wouldn't
-do it much good).
+- Support for more than 4 disks and 7 partitions per disk
+- Support for any partition table format that isn't DOS MBR
+- Long File Name support
+- Support for any filesystem that isn't FAT32
+- Support for a.out, PE, and other executable file formats
+- Support for loading 64-bit kernels (you'll need to write a protected-mode
+  stub that switches to long mode yourself)
+- Support for fancy menus and colors / background images
+- Chainloading, loading anything other than ELF binaries
+- Extensibility
 
-Feature / Component            | Status
------------------------------- | ------
-*Bootloader*                   |
--- Stage 1 MBR version         | Done
--- Stage 1 FAT32 version       | Optional, unimplemented
--- Console I/O                 | Done
--- Disk I/O                    | Done
--- MBR partition-table parsing | Done
--- FAT32 driver                | Done
--- Config file support         | Done
--- Command-line                | Done
--- Memory detection            | Done
--- ELF loading                 | Done
--- Video mode setting          | Done
--- Protected mode switch       | Done
--- Multiboot info generation   | Done
-*Kernel*                       |
--- "Hello world"               | Done
--- ... (TBD)                   |
+Pretty much all of these restrictions stem from the fact that GCC, the chosen
+compiler, does not support x86 real mode all that well, and as a result
+produces assembly that only works within the first 64K memory segment.
 
-HOW TO RUN
+Also, every instruction that does something with 32-bit addresses or 32-bit
+data needs a prefix in real mode, resulting in a lot of bloat in the stage2
+binary.
+
+HOW TO USE
 ----------
 
 ### Requirements
 
-You need to have the following software installed to build Havik:
+You need to have the following software installed to build Stoomboot:
 
 - GNU make
 - A recent GNU binutils and GCC cross-compiler (for i686-elf), see
   [the OSDev wiki](http://wiki.osdev.org/GCC_Cross-Compiler) for instructions
 - yasm
 
-To install Havik onto a disk image, you need the following:
+To build Stoomboot, simply run:
 
-- sfdisk - for partitioning disk images
-- dosfstools - for creating FAT32 filesystems
-- mtools - for copying files onto a FAT32 image
-- perl 5.10.1 +
+```
+make
+```
 
-If you plan to debug Havik or run it in a virtual machine, you may also want to
-install the following tools:
+This will build the stage1 MBR image and the stage2 binary.
 
-- bochs
-- qemu
-- gdb
+If the build fails with relocation errors (*relocation truncated to fit*), this
+means gcc failed to optimize enough for size.
+You can work around this by decreasing the amount of supported disks or
+partitions per disk in stage2/src/disk.h.
 
-### Building / Installing
+### Creating a boot disk
 
-You can build individual Havik components using the following commands:
+To install the bootloader onto a disk image, one might do the following:
 
-    make stage1-mbr-bin
-    make stage2-bin
-    make kernel-bin
+```bash
+DISK_SIZE_M=64
+# Create a blank 64M disk image.
+dd if=/dev/zero of=disk.img bs=1M count=$DISK_SIZE_M
+PART_SIZE_S=$(($DISK_SIZE_M*1024*1024 / 512 - 2048))
+# Partition the disk image. Reserve 2048 sectors before the first partition.
+echo "2048 $PART_SIZE_S c" | sfdisk -H64 -S32 -uS disk.img
+# Create a separate image to build a FAT32 filesystem on.
+dd if=/dev/zero of=fat.img bs=512 count=$PART_SIZE_S
+# Format the fat image.
+mkfs.vfat -F 32 -i 42424242 -n STOOMLDR fat.img
+# Copy the loader configuration file onto the fat image (you may want to customize it first).
+mmd /boot -i fat.img
+cp -n loader.rc{.template,}
+mcopy loader.rc ::/boot -i fat.img
+# Copy a kernel binary onto the disk (optional - you may load a kernel from any FAT32 partition on any disk).
+mcopy /path/to/some/kernel.elf ::/boot -i fat.img
+# Install the FAT32 partition into the disk image.
+dd if=fat.img of=disk.img conv=notrunc bs=512 seek=2048 count=$PART_SIZE_S
+# Install stage1 and stage2 onto the disk.
+tools/loader-install.pl \
+    --mbr \
+    --stage1-mbr   stage1/bin/stoomboot-stage1-mbr.bin \
+    --stage2       stage2/bin/stoomboot-stage2.bin \
+    --stage2-lba   1 \
+    --loader-fs-id 42424242 \
+    --img          disk.img
+```
 
-Run the following command to create a 128M disk image containing Havik and its
-bootloader:
+*Running the example above also requires mtools, sfdisk and perl 5.10.1.*
 
-    make disk
+Try loading the disk image into QEMU:
 
-You can burn the image to a disk drive or flash drive using dd:
-
-    sudo dd if=img/havik-disk.img of=/dev/$BLOCK_DEVICE
-
-... or simply load it in a virtual machine. The following command runs Havik in
-qemu:
-
-    make run
-
-To run Havik headless in qemu using serial I/O over stdio, build and run Havik with
-`SERIAL_IO=1` in your environment.
+```bash
+qemu-system-i386 -vga std disk.img
+```
 
 LICENSE
 -------

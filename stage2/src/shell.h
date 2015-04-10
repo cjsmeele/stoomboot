@@ -11,7 +11,7 @@
 #include "common.h"
 
 #define SHELL_INPUT_BUFFER_SIZE 256
-#define SHELL_QUERY_STRING "havik-loader> "
+#define SHELL_QUERY_STRING "stoomboot> "
 #define SHELL_MAX_ARG_COUNT 16
 
 /**

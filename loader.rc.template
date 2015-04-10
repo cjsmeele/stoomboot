@@ -1,6 +1,6 @@
-## Havik loader configuration.
+## Stoomboot configuration.
 
-## The kernel path.
+## The kernel ELF path.
 ## Valid path formats are as follows:
 ## - hd<DISK_NO>:<PART_NO>:<PATH>
 ## - FSLABEL=<FSLABEL>:<PATH>
@@ -12,14 +12,13 @@ set kernel /boot/havik32.elf
 #set initrd hd0:0:/boot/initrd32.elf
 
 ## Parameters to be passed to the kernel.
-set cmdline Hello\ kernel\ world!
+set cmdline Daar\ wordt\ aan\ de\ deur\ geklopt
 
 ## Automatically boot the set kernel option after `timeout` seconds.
 ## The user can press <Esc> to abort and load a shell.
 ## If timeout is -1, a shell is started immediately.
 ## If timeout is 0, the kernel is booted without a delay.
-#set timeout 3
-set timeout 1
+set timeout 3
 
 ## Uncomment either width and height (and optionally bbp) or video-mode to set
 ## a video mode on boot.

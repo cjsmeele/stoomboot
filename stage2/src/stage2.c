@@ -108,7 +108,7 @@ void stage2Main(uint32_t bootDiskNo, uint64_t loaderFsId) {
 		}
 	}
 
-	printf("\n  Welcome to the Havik bootloader.\n\n");
+	printf("\n  Welcome to Stoomboot.\n\n");
 
 	shell();
 
