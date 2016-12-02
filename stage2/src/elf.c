@@ -89,7 +89,7 @@ typedef struct {
 	elf32_word_t type;
 	elf32_off_t  offset;   ///< Offset in this file.
 	elf32_addr_t vAddr;    ///< Virtual address destination.
-	elf32_addr_t pAddr;    ///< Do not use.
+	elf32_addr_t pAddr;    ///< Physical address destination.
 	elf32_word_t sizeFile; ///< Segment size within the ELF binary.
 	elf32_word_t sizeMem;  ///< Segment size in memory.
 	elf32_word_t flags;
@@ -104,7 +104,7 @@ typedef struct {
 	elf64_word_t  flags;
 	elf64_off_t   offset;   ///< Offset in this file.
 	elf64_addr_t  vAddr;    ///< Virtual address destination.
-	elf64_addr_t  pAddr;    ///< Do not use.
+	elf64_addr_t  pAddr;    ///< Physical address destination.
 	elf64_xword_t sizeFile; ///< Segment size within the ELF binary.
 	elf64_xword_t sizeMem;  ///< Segment size in memory.
 	elf64_xword_t align;
@@ -228,17 +228,17 @@ int loadElf(FileInfo *file) {
 			uint32_t type   = is64 ? phEnt64->type   : phEnt32->type;
 
 			uint64_t offset   = is64 ? phEnt64->offset   : phEnt32->offset;
-			uint64_t vaddr    = is64 ? phEnt64->vAddr    : phEnt32->vAddr;
+			uint64_t paddr    = is64 ? phEnt64->pAddr    : phEnt32->pAddr;
 			uint64_t sizeFile = is64 ? phEnt64->sizeFile : phEnt32->sizeFile;
 			uint64_t sizeMem  = is64 ? phEnt64->sizeMem  : phEnt32->sizeMem;
 
 			if (type == 1) { // 1 == PT_LOAD.
-				loadableSegments[phEntriesProcessed].memAddr    = (uint32_t)vaddr;
+				loadableSegments[phEntriesProcessed].memAddr    = (uint32_t)paddr;
 				loadableSegments[phEntriesProcessed].memSize    = (uint32_t)sizeMem;
 				loadableSegments[phEntriesProcessed].fileOffset = (uint32_t)offset;
 				loadableSegments[phEntriesProcessed].fileSize   = (uint32_t)sizeFile;
 
-				if (!isMemAvailable(vaddr, sizeMem)) {
+				if (!isMemAvailable(paddr, sizeMem)) {
 					printf(
 						"error: Insufficient available memory for segment %#08x-%#08x\n",
 						loadableSegments[phEntriesProcessed].memAddr,
