@@ -25,6 +25,8 @@ use 5.10.1;
 use strict;
 use warnings;
 
+no warnings "experimental::smartmatch";
+
 use Getopt::Long;
 
 my $STAGE1_DAP_OFFSET          = 0x05; # Offset to the start of the DAP struct.
