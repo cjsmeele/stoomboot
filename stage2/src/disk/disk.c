@@ -9,7 +9,6 @@
 #include "bda.h"
 #include "console.h"
 #include "partition-table/dos-mbr.h"
-#include "partition-table/gpt.h"
 
 uint32_t diskCount = 0;
 Disk     disks[DISK_MAX_DISKS];
@@ -206,7 +205,6 @@ typedef struct {
  */
 static const DiskScanner diskScanners[] = {
 	{ "dos-mbr", dosMbrScan },
-	{ "gpt",     gptScan    },
 };
 
 /**
@@ -230,7 +228,7 @@ static int diskScan(Disk *disk) {
 		//printf("-> scanning partition table type '%s'\n", diskScanners[i].name);
 		ret = diskScanners[i].scannerFunc(disk, 0, disk->blockCount);
 		if (ret == DISK_PART_SCAN_OK) {
-			/// @todo Check for GPT partition, etc.
+			/// @note Could check for GPT partition here, for example.
 			break;
 		} else if (ret == DISK_PART_SCAN_ERR_CORRUPT) {
 			// The partition table was recognized by the scanner, but contains errors.
