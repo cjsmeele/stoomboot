@@ -2,7 +2,7 @@
  * \file
  * \brief     Disk I/O.
  * \author    Chris Smeele
- * \copyright Copyright (c) 2015, Chris Smeele. All rights reserved.
+ * \copyright Copyright (c) 2015-2018, Chris Smeele. All rights reserved.
  * \license   MIT. See LICENSE for the full license text.
  */
 #ifndef _DISK_DISK_H
@@ -13,7 +13,7 @@
 
 #define DISK_MAX_DISKS               4
 #define DISK_MAX_PARTITIONS_PER_DISK 7
-#define DISK_MAX_BLOCK_SIZE          4096
+#define DISK_MAX_BLOCK_SIZE          512
 
 #define DISK_PART_SCAN_OK             (0)
 #define DISK_PART_SCAN_ERR_TRY_OTHER (-1)
@@ -31,9 +31,10 @@ struct Partition {
 	FileSystemDriver *fsDriver; ///< NULL if no usable FS was detected.
 	uint64_t fsId;
 	char     fsLabel[16];
-	uint16_t partitionNo;
 	uint64_t lbaStart;
 	uint64_t blockCount;
+	uint32_t token; ///< Number unique to this partition, used for caching within FS code.
+	uint16_t partitionNo;
 	uint8_t  type;
 	bool     active;
 	bool     fsInitialized; ///< Whether FS code has initialized Partition fields (currently only applies to 'label' and 'id').

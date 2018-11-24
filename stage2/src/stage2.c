@@ -2,7 +2,7 @@
  * \file
  * \brief     Stage 2 C entrypoint.
  * \author    Chris Smeele
- * \copyright Copyright (c) 2015, Chris Smeele. All rights reserved.
+ * \copyright Copyright (c) 2015-2018, Chris Smeele. All rights reserved.
  * \license   MIT. See LICENSE for the full license text.
  */
 #include "stage2.h"
@@ -68,7 +68,6 @@ void stage2Main(uint32_t bootDiskNo, uint64_t loaderFsId) {
 	}
 
 	ConfigOption *kernelOption = getConfigOption("kernel");
-	ConfigOption *initrdOption = getConfigOption("initrd");
 
 	if (strlen(kernelOption->value.valStr)) {
 		ConfigOption *timeoutOption = getConfigOption("timeout");
@@ -97,18 +96,13 @@ void stage2Main(uint32_t bootDiskNo, uint64_t loaderFsId) {
 				memset(&bootOption, 0, sizeof(BootOption));
 
 				if (!parseBootPathString(&bootOption.kernel, kernelOption->value.valStr)) {
-					if (
-							   !strlen(initrdOption->value.valStr)
-							|| !parseBootPathString(&bootOption.initrd, initrdOption->value.valStr)
-						) {
-						boot(&bootOption);
-					}
+					boot(&bootOption);
 				}
 			}
 		}
 	}
 
-	printf("\n  Welcome to Stoomboot.\n\n");
+	printf("\n  Stoomboot 1.2 at your service.\n\n");
 
 	shell();
 

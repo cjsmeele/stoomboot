@@ -2,7 +2,7 @@
  * \file
  * \brief     Disk I/O.
  * \author    Chris Smeele
- * \copyright Copyright (c) 2015, Chris Smeele. All rights reserved.
+ * \copyright Copyright (c) 2015-2018, Chris Smeele. All rights reserved.
  * \license   MIT. See LICENSE for the full license text.
  */
 #include "disk.h"
@@ -287,7 +287,6 @@ int disksDiscover() {
 		} else if (partitionCount == 0) {
 			printf("warning: No partitions found on disk %02xh\n", disks[i].biosId);
 			availableDisks++; // We might want to chainload to this disk.
-
 		}
 	}
 

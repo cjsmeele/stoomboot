@@ -6,10 +6,7 @@
 ## - FSLABEL=<FSLABEL>:<PATH>
 ## - FSID=<FSID>:<PATH>
 ## - <PATH> (on the same partition as this configuration file)
-set kernel /boot/havik32.elf
-
-## Initial ramdisks are currently not supported.
-#set initrd hd0:0:/boot/initrd32.elf
+set kernel /boot/kernel.elf
 
 ## Parameters to be passed to the kernel.
 set cmdline Daar\ wordt\ aan\ de\ deur\ geklopt
@@ -28,9 +25,5 @@ set timeout 3
 
 #set video-mode   258
 
-## Uncomment to set an initial bootloader video mode (not recommended).
-#vbe-set 1920 1080 32
-#vbe-set 1024 768
-#vbe-set 258
-
-## Use `vbe-info` to get a list of supported video modes.
+## Use `vbe-info` in Stoomboot's shell to get a list of supported video modes
+## for your hardware.

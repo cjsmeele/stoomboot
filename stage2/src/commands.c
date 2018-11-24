@@ -2,7 +2,7 @@
  * \file
  * \brief     Commands available to the shell and the config system.
  * \author    Chris Smeele
- * \copyright Copyright (c) 2015, Chris Smeele. All rights reserved.
+ * \copyright Copyright (c) 2015-2018, Chris Smeele. All rights reserved.
  * \license   MIT. See LICENSE for the full license text.
  */
 #include "commands.h"
@@ -106,7 +106,6 @@ Command commands[] = {
 
 CMD_DEF(boot) {
 	ConfigOption *kernelOption = getConfigOption("kernel");
-	ConfigOption *initrdOption = getConfigOption("initrd");
 
 	if (strlen(kernelOption->value.valStr)) {
 		BootOption bootOption;
@@ -114,10 +113,6 @@ CMD_DEF(boot) {
 
 		if (parseBootPathString(&bootOption.kernel, kernelOption->value.valStr))
 			return 1;
-		if (strlen(initrdOption->value.valStr)) {
-			if (parseBootPathString(&bootOption.initrd, initrdOption->value.valStr))
-				return 1;
-		}
 
 		boot(&bootOption); // This call should not return.
 

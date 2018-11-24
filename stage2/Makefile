@@ -1,4 +1,4 @@
-# Copyright (c) 2014, 2015 Chris Smeele
+# Copyright (c) 2014-2018 Chris Smeele
 # All rights reserved.
 
 # Parameters {{{
@@ -71,8 +71,8 @@ CWARNINGS := \
 	-Wmissing-declarations \
 	-Wno-long-long \
 	-Wuninitialized \
-	-Wpadded \
 	-Wno-format
+#-Wpadded
 
 ASFLAGS := -f elf32
 CFLAGS  := \

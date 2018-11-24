@@ -2,10 +2,8 @@
  * \file
  * \brief     VFAT Filesytem.
  * \author    Chris Smeele
- * \copyright Copyright (c) 2015, Chris Smeele. All rights reserved.
+ * \copyright Copyright (c) 2015-2018, Chris Smeele. All rights reserved.
  * \license   MIT. See LICENSE for the full license text.
- *
- * @todo Reading files is currently horribly inefficient, see VfatPartData.
  */
 #include "vfat.h"
 #include "console.h"
@@ -54,14 +52,6 @@ typedef struct {
 
 /**
  * \brief Filesystem information used throughout FS operations.
- *
- * We have no heap, so to simplify memory management, a PartData structure
- * is regenerated on the stack on *every* FS call.
- *
- * This is very inefficient though. We might solve this by using a single static
- * VfatPartData structure.
- *
- * FS access is rare anyway.
  */
 typedef struct {
 	Partition *partition;
@@ -80,7 +70,7 @@ typedef struct {
 
 	bool endOfCluster;
 
-} __attribute__((packed)) VfatPartData;
+} VfatPartData;
 
 /**
  * \brief FAT directory entry structure.
@@ -111,6 +101,12 @@ typedef struct {
 	uint16_t clusterNoLow;
 	uint32_t fileSize; ///< In bytes.
 } __attribute__((packed)) VfatDirEntry;
+
+static struct {
+	uint32_t token;
+	VfatPartData partData;
+
+} partCache = { .token = 0 };
 
 /**
  * \brief Convert a cluster number to a block address that contains the FAT entry for that cluster number.
@@ -220,15 +216,21 @@ static int readClusterBlock(VfatPartData *partData, uint8_t *buffer) {
  *
  * \return zero on success, non-zero on failure
  */
-static int vfatInit (VfatPartData *partData, Partition *part) {
+static VfatPartData *vfatInit (Partition *part) {
+	// Is our cached partition data valid?
+	if (part->token == partCache.token)
+		return &partCache.partData;
+
+	// No, read the BPB and fill the partition data struct.
+
 	uint8_t bpbBuffer[DISK_MAX_BLOCK_SIZE];
 	if (partRead(part, (uint32_t)bpbBuffer, 0, 1))
-		return -1;
+		return NULL;
 	const BiosParameterBlock *bpb = (BiosParameterBlock*)bpbBuffer;
 
 	if (bpb->blockSize != part->disk->blockSize) {
 		printf("error: Unmatched vfat block size (%u != %u).\n", bpb->blockSize, part->disk->blockSize);
-		return -1;
+		return NULL;
 	}
 
 	if (!part->fsInitialized) {
@@ -241,6 +243,10 @@ static int vfatInit (VfatPartData *partData, Partition *part) {
 		part->fsInitialized = true;
 	}
 
+	partCache.token = 0;
+	VfatPartData *partData = &partCache.partData;
+	memset(partData, 0, sizeof(VfatPartData));
+
 	partData->partition      = part;
 	partData->fatStart       = bpb->reservedBlocks;
 	partData->fatSize        = bpb->fatSize;
@@ -249,16 +255,17 @@ static int vfatInit (VfatPartData *partData, Partition *part) {
 	partData->clusterSize    = bpb->clusterSize;
 	partData->rootDirCluster = bpb->rootDirCluster;
 
-	return 0;
+	// Allow reuse.
+	partCache.token = part->token;
+
+	return partData;
 }
 
 bool vfatDetect (Partition *part) {
 	if (part->type != 0x0c)
 		return false;
 
-	VfatPartData partData;
-	memset(&partData, 0, sizeof(VfatPartData));
-	if (vfatInit(&partData, part))
+	if (!vfatInit(part))
 		return false;
 
 	return true;
@@ -353,6 +360,7 @@ static int getFile(VfatPartData *partData, FileInfo *fileInfo, uint32_t rootClus
 				} else {
 					// We need to go deeper!
 					/// @todo Prevent possible stack overflow in looping / very deep directories.
+					///       For now we will call this a user error ;-)
 					return getFile(partData, fileInfo, clusterNo, path + strlen(curPathPart) + 1);
 				}
 			}
@@ -363,9 +371,8 @@ static int getFile(VfatPartData *partData, FileInfo *fileInfo, uint32_t rootClus
 }
 
 int vfatGetFile(Partition *part, FileInfo *fileInfo, const char *path) {
-	VfatPartData partData;
-	memset(&partData, 0, sizeof(VfatPartData));
-	if (vfatInit(&partData, part))
+	VfatPartData *partData;
+	if (!(partData = vfatInit(part)))
 		return FS_INTERNAL_ERROR;
 
 	assert(strlen(path) > 0);
@@ -375,24 +382,23 @@ int vfatGetFile(Partition *part, FileInfo *fileInfo, const char *path) {
 		return FS_INTERNAL_ERROR;
 	}
 
-	return getFile(&partData, fileInfo, partData.rootDirCluster, path + 1);
+	return getFile(partData, fileInfo, partData->rootDirCluster, path + 1);
 }
 
 int vfatReadFileBlock(FileInfo *fileInfo, uint8_t *buffer) {
-	VfatPartData partData;
-	memset(&partData, 0, sizeof(VfatPartData));
-	if (vfatInit(&partData, fileInfo->partition))
+	VfatPartData *partData;
+	if (!(partData = vfatInit(fileInfo->partition)))
 		return FS_INTERNAL_ERROR;
 
-	if (seekCluster(&partData, fileInfo->fsAddressCurrent >> 32))
+	if (seekCluster(partData, fileInfo->fsAddressCurrent >> 32))
 		return FS_INTERNAL_ERROR;
 
-	partData.currentClusterBlockNo = (uint32_t)fileInfo->fsAddressCurrent;
+	partData->currentClusterBlockNo = (uint32_t)fileInfo->fsAddressCurrent;
 
-	if (readClusterBlock(&partData, buffer)) {
+	if (readClusterBlock(partData, buffer)) {
 		return FS_IO_ERROR;
 	} else {
-		fileInfo->fsAddressCurrent = (uint64_t)partData.currentClusterNo << 32 | partData.currentClusterBlockNo;
+		fileInfo->fsAddressCurrent = (uint64_t)partData->currentClusterNo << 32 | partData->currentClusterBlockNo;
 		return FS_SUCCESS;
 	}
 }

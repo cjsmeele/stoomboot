@@ -1,7 +1,7 @@
 ;; \file
 ;; \brief     Bootloader stage1, MBR version.
 ;; \author    Chris Smeele
-;; \copyright Copyright (c) 2014, 2015, Chris Smeele. All rights reserved.
+;; \copyright Copyright (c) 2014-2018 Chris Smeele. All rights reserved.
 ;; \license   MIT. See LICENSE for the full license text.
 
 [bits 16]
@@ -32,7 +32,7 @@ s_err_no_int13h_extensions: db "Error: No int13h extensions present :(", 0
 s_err_disk:                 db "Error: Could not read stage2 from boot disk 0x", 0
 s_err_disk_2:               db ", AH=0x", 0
 s_err_magic:                db "Error: No valid stage2 magic number found", 0
-s_stage2_magic:             db 0xfa, 0xf4, "STAGE2", 0, 0
+s_stage2_magic:             db 0xfa, 0xf4, "STAGE2", 2, 0
 s_stage2_magic_end:
 
 putbr:

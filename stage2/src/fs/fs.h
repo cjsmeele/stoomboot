@@ -2,7 +2,7 @@
  * \file
  * \brief     Common filesystem functions.
  * \author    Chris Smeele
- * \copyright Copyright (c) 2015, Chris Smeele. All rights reserved.
+ * \copyright Copyright (c) 2015-2018, Chris Smeele. All rights reserved.
  * \license   MIT. See LICENSE for the full license text.
  */
 #ifndef _FS_FS_H
@@ -24,7 +24,7 @@ typedef struct Partition Partition;
 #define FS_FILE_NOT_FOUND (-3)
 
 typedef enum {
-	FILE_TYPE_REGULAR = 1,
+	FILE_TYPE_REGULAR = 0,
 	FILE_TYPE_DIRECTORY,
 } FileType;
 
@@ -34,10 +34,10 @@ typedef enum {
  */
 typedef struct {
 	Partition *partition;
-	char     name[FS_MAX_FILE_NAME_LENGTH + 1];
 	uint64_t fsAddressStart;   ///< An implementation dependent address.
 	uint64_t fsAddressCurrent; ///< An implementation dependent address, used during reads.
 	uint64_t size;
+	char     name[FS_MAX_FILE_NAME_LENGTH + 1];
 	FileType type;
 } FileInfo;
 

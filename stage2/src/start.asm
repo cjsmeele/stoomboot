@@ -1,7 +1,7 @@
 ;; \file
 ;; \brief     Loads the C portion of stage2
 ;; \author    Chris Smeele
-;; \copyright Copyright (c) 2015, Chris Smeele. All rights reserved.
+;; \copyright Copyright (c) 2015-2018, Chris Smeele. All rights reserved.
 ;; \license   MIT. See LICENSE for the full license text.
 
 [bits 16]
@@ -22,7 +22,7 @@ SECTION .start
 
 _start:
 	db 0xfa, 0xf4     ; cli, hlt
-	db "STAGE2", 0, 0 ; magic!
+	db "STAGE2", 2, 0 ; magic!
 
 jmp start
 

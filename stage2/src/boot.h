@@ -2,7 +2,7 @@
  * \file
  * \brief     Functions used to boot the system.
  * \author    Chris Smeele
- * \copyright Copyright (c) 2015, Chris Smeele. All rights reserved.
+ * \copyright Copyright (c) 2015-2018, Chris Smeele. All rights reserved.
  * \license   MIT. See LICENSE for the full license text.
  */
 #ifndef _BOOT_H
@@ -18,7 +18,6 @@ typedef struct {
 
 typedef struct {
 	BootFilePath kernel;
-	BootFilePath initrd;
 } BootOption;
 
 /**

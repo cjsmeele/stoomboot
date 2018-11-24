@@ -2,7 +2,7 @@
  * \file
  * \brief     DOS MBR scanner.
  * \author    Chris Smeele
- * \copyright Copyright (c) 2015, Chris Smeele. All rights reserved.
+ * \copyright Copyright (c) 2015-2018, Chris Smeele. All rights reserved.
  * \license   MIT. See LICENSE for the full license text.
  */
 #include "dos-mbr.h"
@@ -118,6 +118,7 @@ int dosMbrScan(Disk *disk, uint64_t lbaStart, uint64_t blockCount) {
 					partition->blockCount  = pte->blockCount;
 					partition->type        = pte->systemId;
 					partition->active      = pte->active & 0x80;
+					partition->token       = ((uint32_t)disk->diskNo << 16) | (partition->partitionNo + 1);
 				}
 			}
 		}

@@ -2,20 +2,18 @@
  * \file
  * \brief     Configuration options.
  * \author    Chris Smeele
- * \copyright Copyright (c) 2015, Chris Smeele. All rights reserved.
+ * \copyright Copyright (c) 2015-2018, Chris Smeele. All rights reserved.
  * \license   MIT. See LICENSE for the full license text.
  */
 #include "config.h"
 #include "console.h"
 
 static char optionKernelBuffer[ CONFIG_STRING_VALUE_BUFFER_SIZE];
-static char optionInitrdBuffer[ CONFIG_STRING_VALUE_BUFFER_SIZE];
 static char optionCmdLineBuffer[CONFIG_STRING_VALUE_BUFFER_SIZE];
 
 ConfigOption configOptions[] = {
 	{ "timeout",      CONFIG_OPTION_TYPE_INT32,  .value.valInt32 = -1                  },
 	{ "kernel",       CONFIG_OPTION_TYPE_STRING, .value.valStr   = optionKernelBuffer  },
-	{ "initrd",       CONFIG_OPTION_TYPE_STRING, .value.valStr   = optionInitrdBuffer  },
 	{ "cmdline",      CONFIG_OPTION_TYPE_STRING, .value.valStr   = optionCmdLineBuffer },
 	{ "video-width",  CONFIG_OPTION_TYPE_INT32,  .value.valInt32 = 0                   },
 	{ "video-height", CONFIG_OPTION_TYPE_INT32,  .value.valInt32 = 0                   },
@@ -56,6 +54,5 @@ void setConfigOption(const char *key, ConfigOptionValue value) {
 
 void initConfig() {
 	optionKernelBuffer[0]  = '\0';
-	optionInitrdBuffer[0]  = '\0';
 	optionCmdLineBuffer[0] = '\0';
 }

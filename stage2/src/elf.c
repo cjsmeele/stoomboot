@@ -2,7 +2,7 @@
  * \file
  * \brief     ELF Loader.
  * \author    Chris Smeele
- * \copyright Copyright (c) 2015, Chris Smeele. All rights reserved.
+ * \copyright Copyright (c) 2015-2018, Chris Smeele. All rights reserved.
  * \license   MIT. See LICENSE for the full license text.
  */
 #include "elf.h"
@@ -10,7 +10,6 @@
 #include "console.h"
 #include "memmap.h"
 #include "far.h"
-#include "protected.h"
 
 // ELF32 types.
 typedef uint32_t elf32_addr_t;
@@ -111,57 +110,84 @@ typedef struct {
 } __attribute__((packed)) Elf64PhEntry;
 
 
-int loadElf(FileInfo *file) {
-
-	/// \todo This function should be split up.
+uint64_t loadElf(FileInfo *file) {
 
 	Partition *part = file->partition;
-	uint8_t buffer[part->disk->blockSize];
+	size_t bufferSize = part->disk->blockSize;
+	uint8_t buffer[bufferSize]; ///< We'll use this for IO.
 
 	if (file->size < sizeof(Elf64Header))
 		goto readError;
 
+	// XXX: We assume that we will never have to seek backwards in the file.
+	//      This is a pretty big assumption, that as far as I can remember does
+	//      not have any grounds in the ELF file format.
+	//      However, all binaries I've built so far (using GCC's and LLVM's
+	//      toolchains) have allowed for me to make this assumption.
+	//      (that is, the program headers are in the expected order)
+	// Our current position in the file.
 	size_t bytesRead = 0;
 
-	int ret = part->fsDriver->readFileBlock(file, buffer);
-	if (ret != FS_SUCCESS)
-		goto readError;
+	// Read one block. Fail on premature EOF or and IO errors.
+#define READ_NEXT_BLOCK() \
+		{ if (bytesRead >= file->size)                                   goto readError; \
+		  if (part->fsDriver->readFileBlock(file, buffer) != FS_SUCCESS) goto readError; \
+		  bytesRead += part->disk->blockSize; }
 
-	bytesRead += part->disk->blockSize;
+	// Read the first block.
+	READ_NEXT_BLOCK();
 
-	Elf32Header *header32 = (Elf32Header*)buffer;
-	Elf64Header *header64 = (Elf64Header*)buffer;
+	bool is64;
+	uint64_t entryPoint;
+	uint16_t phEntSize;
+	uint16_t phNum;
+	uint64_t phOff;
+	uint16_t objType;
 
-	if (!strneq(header32->ident.magic, "\x7f" "ELF", 4)) {
-		printf("error: Invalid ELF magic\n");
-		return -1;
+	// Parse the ELF header to produce values for the variables above.
+	{
+		// The header can be either of these.
+		Elf32Header *header32 = (Elf32Header*)buffer;
+		Elf64Header *header64 = (Elf64Header*)buffer;
+
+		if (!strneq(header32->ident.magic, "\x7f" "ELF", 4)) {
+			printf("error: Invalid ELF magic\n");
+			return NULL;
+		}
+
+		// We support both 32-bit and 64-bit ELF.
+		if (
+			   header32->ident.class       < 1 || header32->ident.class > 2
+			|| header32->ident.endianness != 1
+		) {
+			printf("error: Incompatible platform in ELF header.\n");
+			return NULL;
+		}
+
+		// Extract the info we need from the ELF header.
+		is64 = header32->ident.class == 2;
+
+		entryPoint = is64 ? header64->entry     : header32->entry;
+		phEntSize  = is64 ? header64->phEntSize : header32->phEntSize;
+		phNum      = is64 ? header64->phNum     : header32->phNum;
+		phOff      = is64 ? header64->phOff     : header32->phOff;
+		objType    = is64 ? header64->type      : header32->type;
+
+		// Note that while we can read ELF64 files, we cannot directly execute 64-bit code.
+		// A loaded 64-bit program must include 32-bit protected mode code to make the switch to long mode.
+		// Additionally, loads to physical addresses outside the 32-bit address space are not currently possible for Stoomboot.
 	}
 
-	if (
-		   header32->ident.class       < 1 || header32->ident.class > 2
-		|| header32->ident.endianness != 1
-	) {
-		// Support both 32-bit and 64-bit ELF.
-		printf("error: Incompatible platform in ELF header.\n");
-		return -1;
-	}
-
-	bool is64 = header32->ident.class == 2;
-
-	uint64_t entryPoint = is64 ? header64->entry     : header32->entry;
-	uint16_t phEntSize  = is64 ? header64->phEntSize : header32->phEntSize;
-	uint16_t phNum      = is64 ? header64->phNum     : header32->phNum;
-	uint64_t phOff      = is64 ? header64->phOff     : header32->phOff;
-	uint16_t objType    = is64 ? header64->type      : header32->type;
+	// Sanity checks.
 
 	if (objType != 2) {
 		printf("error: ELF is not executable.\n");
-		return -1;
+		return NULL;
 	}
 
 	if (phOff >> 32) {
 		printf("error: ELF too large (phOff >> 32).\n");
-		return -1;
+		return NULL;
 	}
 
 	if (
@@ -169,54 +195,47 @@ int loadElf(FileInfo *file) {
 		|| (!is64 && phEntSize != sizeof(Elf32PhEntry))
 	) {
 		printf("error: Invalid ELF program header size (%u).\n", phEntSize);
-		return -1;
+		return NULL;
 	}
 
 	if (phNum * phEntSize > 2048) {
 		// Looks like a sane limit.
 		printf("error: ELF program header too large > 2048.\n");
-		return -1;
+		return NULL;
 	}
 
 	{
-		struct {
+		// Obtain information about the segments we need to load into memory,
+		// either from disk or by writing null bytes.
+		struct LoadableSegments {
 			uint32_t fileOffset;
 			uint32_t memAddr;
 			uint32_t fileSize;
-			uint32_t memSize;
+			uint32_t memSize;  // memSize > fileSize => we need to clear remaining memory.
 		} loadableSegments[phNum];
-
-		memset(loadableSegments, 0, sizeof(loadableSegments));
 
 		uint8_t  phBuffer[phEntSize];
 		uint32_t phEntriesProcessed = 0;
-		uint32_t bufferOff   = 0;
+		uint32_t bufferOff          = 0;
 
-		while (
-			bytesRead < phOff
-			+ ((uint32_t)phOff % part->disk->blockSize ? 0 : 1)
-		) {
-			if (bytesRead >= file->size)
-				goto readError;
+		uint32_t totalMemSize      = 0;
+		uint32_t totalFileCopySize = 0;
 
-			if (part->fsDriver->readFileBlock(file, buffer) != FS_SUCCESS)
-				goto readError;
+	// This reads the minimum amount of blocks necessary in order to get the
+	// byte at "off" in the buffer. Used for seeking.
+	// bufferOff will be filled with the position off the byte at "off" within "buffer".
+#define READ_UP_TO_AND_INCLUDING(off) \
+		{ while (bytesRead < (off) + ((uint32_t)(off) % part->disk->blockSize ? 0 : 1)) \
+			READ_NEXT_BLOCK(); \
+		bufferOff = (uint32_t)(off) % part->disk->blockSize; }
 
-			bytesRead += part->disk->blockSize;
-		}
+		// Read until we have read the start of the program headers.
+		READ_UP_TO_AND_INCLUDING(phOff);
 
-		bufferOff = (uint32_t)phOff % part->disk->blockSize;
-
-		for (uint32_t i=0; i<phNum; i++) {
-			for (uint32_t j=0; j<phEntSize; j++) {
+		for (uint32_t i = 0; i < phNum; ++i) {
+			for (uint32_t j = 0; j < phEntSize; ++j) {
 				if (bufferOff >= MIN(part->disk->blockSize, file->size - (bytesRead - part->disk->blockSize))) {
-					if (bytesRead >= file->size)
-						goto readError;
-
-					if (part->fsDriver->readFileBlock(file, buffer) != FS_SUCCESS)
-						goto readError;
-
-					bytesRead += part->disk->blockSize;
+					READ_NEXT_BLOCK();
 					bufferOff = 0;
 				}
 				phBuffer[j] = buffer[bufferOff++];
@@ -238,86 +257,102 @@ int loadElf(FileInfo *file) {
 				loadableSegments[phEntriesProcessed].fileOffset = (uint32_t)offset;
 				loadableSegments[phEntriesProcessed].fileSize   = (uint32_t)sizeFile;
 
+				totalMemSize      += sizeMem;
+				totalFileCopySize += sizeFile;
+
+				// We need to check this against the memory map provided to us by the BIOS.
 				if (!isMemAvailable(paddr, sizeMem)) {
 					printf(
 						"error: Insufficient available memory for segment %#08x-%#08x\n",
 						loadableSegments[phEntriesProcessed].memAddr,
 						loadableSegments[phEntriesProcessed].memSize
 					);
-					return -1;
+					return NULL;
 				}
+				phEntriesProcessed++;
 			}
-
-			phEntriesProcessed++;
-
-			if (type != 1)
-				continue;
 		}
 
-		if (phEntriesProcessed != phNum) {
-			printf("error: Failed to read all program header entries\n");
-			return -1;
+		phNum = phEntriesProcessed; // Filter out non-LOAD segments.
+
+		bool showProgress = totalFileCopySize > 1024*1024;
+		int progressWidth = 20;
+		int progressI     =  0;
+		uint32_t totalFileCopied = 0;
+
+		if (showProgress) {
+			printf("Loading [");
+			for (int j = 0; j < progressWidth; ++j)
+				putch(' ');
+			putch(']');
 		}
 
-		uint8_t segmentBuffer[512];
+		for (uint32_t i = 0; i < phNum; ++i) {
+			//printf("\nseg nr %d/%d\n", i+1, phNum);
+			struct LoadableSegments *seg = &loadableSegments[i];
+			uint16_t bs = part->disk->blockSize;
 
-		for (uint32_t i=0; i<phNum; i++) {
-			if (!loadableSegments[i].memAddr || !loadableSegments[i].memSize)
-				continue;
+			if (!seg->memAddr || !seg->memSize)
+				continue; // An empty segment? Done.
 
-			if (loadableSegments[i].fileOffset && loadableSegments[i].fileSize) {
-				while (
-					bytesRead <
-						  loadableSegments[i].fileOffset
-						+ (loadableSegments[i].fileOffset % part->disk->blockSize ? 0 : 1)
-				) {
-					if (bytesRead >= file->size)
-						goto readError;
+			if (seg->fileOffset && seg->fileSize) {
+				// We have stuff to load from disk.
 
-					if (part->fsDriver->readFileBlock(file, buffer) != FS_SUCCESS)
-						goto readError;
+				READ_UP_TO_AND_INCLUDING(seg->fileOffset);
 
-					bytesRead += part->disk->blockSize;
-				}
+				// Copy the first part.
+				uint32_t memI = MIN(bs - bufferOff, seg->fileSize);
+				farcpy(
+					seg->memAddr,
+					(uint32_t)buffer + bufferOff,
+					memI // = keeping track of the amount of copied bytes.
+				);
+				totalFileCopied += memI;
 
-				bufferOff = (uint32_t)loadableSegments[i].fileOffset % part->disk->blockSize;
-
-				for (uint32_t j=0; j<loadableSegments[i].fileSize; j += ELEMS(segmentBuffer)) {
-					for (uint32_t k=0; k<ELEMS(segmentBuffer); k++) {
-						if (bufferOff >= MIN(part->disk->blockSize, file->size - (bytesRead - part->disk->blockSize))) {
-							if (bytesRead >= file->size)
-								goto readError;
-
-							if (part->fsDriver->readFileBlock(file, buffer) != FS_SUCCESS)
-								goto readError;
-
-							bytesRead += part->disk->blockSize;
-							bufferOff = 0;
-							if (!(bytesRead % 2048))
-								putch('.');
-						}
-						segmentBuffer[k] = buffer[bufferOff++];
-					}
+				while (memI < seg->fileSize) {
+					// Read a block.
+					READ_NEXT_BLOCK();
+					uint32_t toRead = MIN(bs, seg->fileSize - memI);
+					// Copy it to the right address.
 					farcpy(
-						loadableSegments[i].memAddr + j,
-						(uint32_t)segmentBuffer,
-						MIN(ELEMS(segmentBuffer), loadableSegments[i].fileSize - j)
+						seg->memAddr + memI,
+						(uint32_t)buffer,
+						toRead
 					);
+					memI            += toRead;
+					totalFileCopied += toRead;
+
+					// Show progress indicator.
+					if (showProgress && (bytesRead & 0x7fff) == 0) {
+						int dots = 1+ (totalFileCopied * progressWidth) / (totalFileCopySize);
+						printf("\rLoading [");
+						for (int j = 0; j < dots-1; ++j)
+							putch('=');
+						const char *x = "/-\\|";
+						putch(x[progressI % 4]);
+						for (int j = dots; j < progressWidth; ++j)
+							putch(' ');
+						printf("] %6dK", totalFileCopied/1024);
+						++progressI;
+					}
 				}
 			}
 
-			farzero(
-				loadableSegments[i].memAddr + loadableSegments[i].fileSize,
-				loadableSegments[i].memSize - loadableSegments[i].fileSize
-			);
+			// Clear the remaining memory.
+			// This is how .bss sections work, for example.
+			if (seg->memSize - seg->fileSize > 0) {
+				msleep(500);
+				farzero(
+					seg->memAddr + seg->fileSize,
+					seg->memSize - seg->fileSize
+				);
+			}
 		}
 
-		enterProtectedMode(entryPoint);
-
-		return -1;
+		return entryPoint;
 	}
 
 readError:
 	printf("error: Could not read ELF binary\n");
-	return -1;
+	return NULL;
 }

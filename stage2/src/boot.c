@@ -2,7 +2,7 @@
  * \file
  * \brief     Functions used to boot the system.
  * \author    Chris Smeele
- * \copyright Copyright (c) 2015, Chris Smeele. All rights reserved.
+ * \copyright Copyright (c) 2015-2018, Chris Smeele. All rights reserved.
  * \license   MIT. See LICENSE for the full license text.
  */
 #include "boot.h"
@@ -13,6 +13,7 @@
 #include "vbe.h"
 #include "multiboot.h"
 #include "stage2.h"
+#include "protected.h"
 
 void boot(BootOption *bootOption) {
 
@@ -33,40 +34,51 @@ void boot(BootOption *bootOption) {
 	);
 
 	if (ret == FS_SUCCESS && fileInfo.type == FILE_TYPE_REGULAR) {
-		ConfigOption *videoWidth  = getConfigOption("video-width");
-		ConfigOption *videoHeight = getConfigOption("video-height");
-		ConfigOption *videoBpp    = getConfigOption("video-bbp");
-		ConfigOption *videoMode   = getConfigOption("video-mode");
 
-		bool modeSet = false;
+		// Load the kernel ELF from disk and obtain its entrypoint.
+		uint64_t entryPoint = loadElf(&fileInfo);
 
-		if (videoMode->value.valInt32) {
-			modeSet = !vbeSetMode(videoMode->value.valInt32);
-		} else if (videoWidth->value.valInt32 && videoHeight->value.valInt32) {
-			uint16_t mode = vbeGetModeFromModeInfo(
-				videoWidth->value.valInt32,
-				videoHeight->value.valInt32,
-				videoBpp->value.valInt32
-			);
+		if (entryPoint) {
+			// Set the requested video mode.
+			// We need to do this before generating the multiboot info struct,
+			// so that we can pass VBE info to the kernel.
+			ConfigOption *videoWidth  = getConfigOption("video-width");
+			ConfigOption *videoHeight = getConfigOption("video-height");
+			ConfigOption *videoBpp    = getConfigOption("video-bbp");
+			ConfigOption *videoMode   = getConfigOption("video-mode");
 
-			if (mode != 0xffff)
-				modeSet = !vbeSetMode(mode);
+			bool modeSet = false;
+
+			if (videoMode->value.valInt32) {
+				modeSet = !vbeSetMode(videoMode->value.valInt32);
+			} else if (videoWidth->value.valInt32 && videoHeight->value.valInt32) {
+				uint16_t mode = vbeGetModeFromModeInfo(
+					videoWidth->value.valInt32,
+					videoHeight->value.valInt32,
+					videoBpp->value.valInt32
+				);
+
+				if (mode != 0xffff)
+					modeSet = !vbeSetMode(mode);
+			}
+
+			// Note: We do not read the kernel's multiboot header; We simply assume that
+			//       the kernel will be an ELF image and supply a memory map.
+			//       Any video mode switching must be specified in the loader.rc file.
+			generateMultibootInfo(kernelPartition);
+
+			// The machine spirits are willing.
+			enterProtectedMode(entryPoint);
+
+			if (modeSet) {
+				// Boot failed, reset display to 80x25 text mode.
+				msleep(3000);
+				setVideoMode(3);
+			}
 		}
 
-		// Note: We do not read the kernel's multiboot header; We simply assume that
-		//       the kernel will be an ELF image and supply a memory map.
-		//       Any video mode switching must be specified in the loader.rc file.
-		generateMultibootInfo(kernelPartition);
+		// If we get here, the boot failed. :(
 
-		loadElf(&fileInfo);
-
-		// Boot failed. :(
-
-		if (modeSet) {
-			// Reset display to 80x25 text mode.
-			msleep(3000);
-			setVideoMode(3);
-		}
 	} else if (ret == FS_FILE_NOT_FOUND || fileInfo.type != FILE_TYPE_REGULAR) {
 		printf(
 			"error: Kernel binary not found at hd%u:%u:%s\n",

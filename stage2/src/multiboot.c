@@ -2,7 +2,7 @@
  * \file
  * \brief     Multiboot compatibility.
  * \author    Chris Smeele
- * \copyright Copyright (c) 2015, Chris Smeele. All rights reserved.
+ * \copyright Copyright (c) 2015-2018, Chris Smeele. All rights reserved.
  * \license   MIT. See LICENSE for the full license text.
  */
 #include "multiboot.h"
@@ -13,7 +13,7 @@
 
 struct multiboot_info multibootInfo;
 
-static const char *BOOTLOADER_NAME = "Stoomboot 0.1";
+static const char *BOOTLOADER_NAME = "Stoomboot 1.2";
 
 static VbeInfoBlock     vbeBootInfo;
 static VbeModeInfoBlock vbeBootModeInfo;

@@ -2,7 +2,7 @@
  * \file
  * \brief     ELF Loader.
  * \author    Chris Smeele
- * \copyright Copyright (c) 2015, Chris Smeele. All rights reserved.
+ * \copyright Copyright (c) 2015-2018, Chris Smeele. All rights reserved.
  * \license   MIT. See LICENSE for the full license text.
  */
 #ifndef _ELF_H
@@ -18,8 +18,8 @@
  *
  * \param file
  *
- * \return non-zero on failure
+ * \return a 64-bit entrypoint address (NULL on failure)
  */
-int loadElf(FileInfo *file);
+uint64_t loadElf(FileInfo *file);
 
 #endif /* _ELF_H */
