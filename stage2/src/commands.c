@@ -197,7 +197,14 @@ CMD_DEF(disk_info) {
 		return 1;
 
 	if (argc == 1) {
-		printf("%u disks were detected.\n", diskCount);
+		if (diskCount == 1) {
+			// Re-run for the single detected disk.
+			char argn[] = "0";
+			char *argv2[2] = { argv[0], argn };
+			CMD_FUNCTION(disk_info)(2, argv2, true);
+		} else {
+			printf("%u disks were detected. (try `disk-info 0')\n", diskCount);
+		}
 		return 0;
 	} else if (argc == 2) {
 		uint32_t diskNo = atoi(argv[1]);

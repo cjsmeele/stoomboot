@@ -102,7 +102,7 @@ void stage2Main(uint32_t bootDiskNo, uint64_t loaderFsId) {
 		}
 	}
 
-	printf("\n  Stoomboot 1.2 at your service.\n\n");
+	printf("\n  Stoomboot 1.3 at your service.\n\n");
 
 	shell();
 

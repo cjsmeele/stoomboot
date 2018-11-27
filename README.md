@@ -21,7 +21,7 @@ encounter if you choose to use Stoomboot.
 PROJECT STATUS
 --------------
 
-Stoomboot (version 1.2, 2018-11-24) is considered "feature-complete".
+Stoomboot (version 1.3, 2018-11-27) is considered "feature-complete".
 That means there is no on-going development right now.
 
 However, if you find a bug, want to request a change, or if you simply
@@ -37,12 +37,12 @@ FEATURES
     - Memory map
     - Commandline
     - Boot device
-    - VBE mode info, if set
+    - Framebuffer and VBE mode info, if set
   - Does not validate or use flags in a multiboot-compliant kernel's multiboot
     header
 - Completely runs in the first 64K memory segment (~32K stack, ~33K code + data)
 - Supports up to 4 disks with 7 partitions per disk (due to memory constraints)
-- Supports video modesetting using VBE
+- Supports graphics / video modesetting using VBE
 - Supports FAT32 filesystems
 - Has a commandline interface
 - Loads a configuration file from disk
@@ -101,51 +101,54 @@ partitions per disk in stage2/src/disk.h.
 
 ### Creating a boot disk
 
-To install the bootloader onto a disk image, one might do the following:
+After building stoomboot, you may use it to create a boot disk as follows:
+
+*These steps require mtools, parted and perl 5.10.1*
 
 ```bash
-DISK_SIZE_M=64
-PART_SIZE_S=$(($DISK_SIZE_M*1024*1024 / 512 - 2048))
-IMG_FILE=/tmp/disk.img
-FAT_FILE=/tmp/fs.img
+#!/bin/bash
 
-# Create a blank 64M disk image.
-truncate -s${DISK_SIZE_M}M "$IMG_FILE"
+# Disk parameters
 
-# Partition the disk image. Reserve 2048 sectors before the first partition.
-#echo "2048 $PART_SIZE_S c" | sfdisk -H64 -S32 -uS "$IMG_FILE"
-echo "2048 $PART_SIZE_S c" | sfdisk -uS "$IMG_FILE"
+DISK_SIZE_M=72
+DISK_FILE=/tmp/disk.img
+DISK_FS="${DISK_FILE}@@1M"
+DISK_FSID=42424242
+DISK_FSLABEL=STOOMLDR
 
-# Create a separate image to build a FAT32 filesystem on.
-truncate -s$(($PART_SIZE_S * 512)) "$FAT_FILE"
+# The config file, make sure it exists.
+LOADER_RCFILE=./loader.rc
 
-# Format the fat image.
-mkfs.vfat -F 32 -i 42424242 -n STOOMLDR "$FAT_FILE"
+# Create an emtpy sparse disk and partition it.
+truncate -s${DISK_SIZE_M}M "$DISK_FILE"
+parted -s "$DISK_FILE" unit MiB mklabel msdos mkpart primary fat32 1 '100%'
 
-# Copy the loader configuration file onto the fat image (you may want to customize it first).
-mmd /boot -i "$FAT_FILE"
+# Format as FAT32.
+mformat -i "$DISK_FS" -FN "$DISK_FSID" -v "$DISK_FSLABEL"
 
-mcopy loader.rc ::/boot -i "$FAT_FILE"
+# Create /boot and install the configuration file.
+# (make sure to customize it first, if needed)
+mmd     -i "$DISK_FS" /boot
+mcopy   -i "$DISK_FS" "$LOADER_RCFILE" ::/boot/loader.rc
 
-# Copy a kernel binary onto the disk (optional - you may load a kernel from any FAT32 partition on any disk).
-mcopy kernel.elf ::/boot -i "$FAT_FILE"
-
-# Install the FAT32 partition into the disk image.
-dd if="$FAT_FILE" conv=sparse of="$IMG_FILE" conv=notrunc bs=512 seek=2048 count="$PART_SIZE_S"
-
-# Install stage1 and stage2 onto the disk.
-stoomboot/tools/loader-install.pl \
+# Install Stoomboot stage1 & stage2.
+tools/loader-install.pl \
     --mbr \
     --stage1-mbr   stage1/bin/stoomboot-stage1-mbr.bin \
     --stage2       stage2/bin/stoomboot-stage2.bin \
     --stage2-lba   1 \
-    --loader-fs-id 42424242 \
-    --img          "$IMG_FILE"
+    --loader-fs-id "$DISK_FSID" \
+    --img          "$DISK_FILE"
 ```
 
-*Running the example above also requires mtools, sfdisk and perl 5.10.1.*
+Then, once you have a built your multiboot-compliant kernel binary, you
+can copy it to the disk like so:
 
-Try loading the disk image into QEMU:
+```bash
+mcopy   -i "$DISK_FS" YOUR_KERNEL_ELF ::/boot
+```
+
+Then, try loading the disk image into QEMU:
 
 ```bash
 qemu-system-i386 -vga std disk.img

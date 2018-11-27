@@ -13,7 +13,7 @@
 
 struct multiboot_info multibootInfo;
 
-static const char *BOOTLOADER_NAME = "Stoomboot 1.2";
+static const char *BOOTLOADER_NAME = "stoomboot-1.3";
 
 static VbeInfoBlock     vbeBootInfo;
 static VbeModeInfoBlock vbeBootModeInfo;
@@ -62,7 +62,15 @@ void generateMultibootInfo(Partition *bootPartition) {
 	} else {
 		vbeGetModeInfo(&vbeBootModeInfo, vbeCurrentMode);
 		multibootInfo.vbe_mode_info = (uint32_t)&vbeBootModeInfo;
-		multibootInfo.flags |= MULTIBOOT_INFO_VIDEO_INFO;
+		multibootInfo.flags |= MULTIBOOT_INFO_VBE_INFO;
+
+		multibootInfo.framebuffer_addr   = vbeBootModeInfo.physBasePtr;
+		multibootInfo.framebuffer_pitch  = vbeBootModeInfo.bytesPerScanLine;
+		multibootInfo.framebuffer_width  = vbeBootModeInfo.xResolution;
+		multibootInfo.framebuffer_height = vbeBootModeInfo.yResolution;
+		multibootInfo.framebuffer_bpp    = vbeBootModeInfo.bitsPerPixel;
+		multibootInfo.framebuffer_type   = MULTIBOOT_FRAMEBUFFER_TYPE_RGB;
+		multibootInfo.flags |= MULTIBOOT_INFO_FRAMEBUFFER_INFO;
 	}
 
 	multibootInfo.vbe_mode = vbeCurrentMode;
