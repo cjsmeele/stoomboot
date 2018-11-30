@@ -43,7 +43,7 @@ void generateMultibootInfo(Partition *bootPartition) {
 	// Not supported.
 	//memset(&multibootInfo.u.elf_sec, 0, sizeof(multibootInfo.u.elf_sec));
 
-	multibootInfo.mmap_length = memMap.regionCount * (sizeof(MemMapRegion) - sizeof(uint32_t));
+	multibootInfo.mmap_length = memMap.regionCount * (sizeof(MemMapRegion));
 	multibootInfo.mmap_addr   = (uint32_t)memMap.regions;
 
 	multibootInfo.boot_loader_name = (uint32_t)BOOTLOADER_NAME;
